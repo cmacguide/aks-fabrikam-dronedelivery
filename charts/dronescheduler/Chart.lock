@@ -1,0 +1,15 @@
+dependencies:
+- name: dronescheduler-dev
+  repository: file://envs/dronescheduler-dev
+  version: v0.1.0
+- name: dronescheduler-prod
+  repository: file://envs/dronescheduler-prod
+  version: v0.1.0
+- name: dronescheduler-qa
+  repository: file://envs/dronescheduler-qa
+  version: v0.1.0
+- name: dronescheduler-staging
+  repository: file://envs/dronescheduler-staging
+  version: v0.1.0
+digest: sha256:939547503ff26bfd8f6e9cf549bfba65ab43ababe86052c129bd9d522b2ac7cb
+generated: "2025-06-04T18:18:15.965291708-03:00"

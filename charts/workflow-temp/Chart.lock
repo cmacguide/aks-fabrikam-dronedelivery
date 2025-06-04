@@ -1,0 +1,15 @@
+dependencies:
+- name: workflow-dev
+  repository: file://envs/workflow-dev
+  version: v0.1.0
+- name: workflow-prod
+  repository: file://envs/workflow-prod
+  version: v0.1.0
+- name: workflow-qa
+  repository: file://envs/workflow-qa
+  version: v0.1.0
+- name: workflow-staging
+  repository: file://envs/workflow-staging
+  version: v0.1.0
+digest: sha256:582660489da19a2ccd1d7ee8f090f34173e80176e99817984b49f9bdd88033a6
+generated: "2025-06-04T18:21:43.666729938-03:00"

@@ -1,0 +1,15 @@
+dependencies:
+- name: delivery-dev
+  repository: file://envs/delivery-dev
+  version: v0.1.0
+- name: delivery-prod
+  repository: file://envs/delivery-prod
+  version: v0.1.0
+- name: delivery-qa
+  repository: file://envs/delivery-qa
+  version: v0.1.0
+- name: delivery-staging
+  repository: file://envs/delivery-staging
+  version: v0.1.0
+digest: sha256:b0f44312a66557c0c93962d799d85c7f70163dbf2d67d3f63ae8e8c155a9e571
+generated: "2025-06-04T17:36:14.892504002-03:00"

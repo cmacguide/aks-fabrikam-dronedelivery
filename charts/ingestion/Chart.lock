@@ -1,0 +1,15 @@
+dependencies:
+- name: ingestion-dev
+  repository: file://envs/ingestion-dev
+  version: v0.1.0
+- name: ingestion-prod
+  repository: file://envs/ingestion-prod
+  version: v0.1.0
+- name: ingestion-qa
+  repository: file://envs/ingestion-qa
+  version: v0.1.0
+- name: ingestion-staging
+  repository: file://envs/ingestion-staging
+  version: v0.1.0
+digest: sha256:25eb29721fa02154fc22d8191d87d6e93dac887edf646bdd01291216e7ed6d4a
+generated: "2025-06-04T18:24:07.016086304-03:00"
