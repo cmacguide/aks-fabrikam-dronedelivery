@@ -427,7 +427,6 @@ resource logAnalyticsWorkspaceAllPrometheus 'Microsoft.OperationalInsights/works
   parent: logAnalyticsWorkspace
   name: 'AllPrometheus'
   properties: {
-    eTag: '*'
     category: 'Prometheus'
     displayName: 'All collected Prometheus information'
     query: 'InsightsMetrics | where Namespace == "prometheus"'
@@ -439,7 +438,6 @@ resource logAnalyticsWorkspaceNameForbiddenReponsesOnIngress 'Microsoft.Operatio
   parent: logAnalyticsWorkspace
   name: 'ForbiddenReponsesOnIngress'
   properties: {
-    eTag: '*'
     category: 'Prometheus'
     displayName: 'Increase number of forbidden response on the Ingress Controller'
     query: 'let value = toscalar(InsightsMetrics | where Namespace == "prometheus" and Name == "traefik_entrypoint_requests_total" | where parse_json(Tags).code == 403 | summarize Value = avg(Val) by bin(TimeGenerated, 5m) | summarize min = min(Value)); InsightsMetrics | where Namespace == "prometheus" and Name == "traefik_entrypoint_requests_total" | where parse_json(Tags).code == 403 | summarize AggregatedValue = avg(Val)-value by bin(TimeGenerated, 5m) | order by TimeGenerated | render barchart'
@@ -451,7 +449,6 @@ resource logAnalyticsWorkspaceNameNodeRebootRequested 'Microsoft.OperationalInsi
   parent: logAnalyticsWorkspace
   name: 'NodeRebootRequested'
   properties: {
-    eTag: '*'
     category: 'Prometheus'
     displayName: 'Nodes reboot required by kured'
     query: 'InsightsMetrics | where Namespace == "prometheus" and Name == "kured_reboot_required" | where Val > 0'
@@ -551,13 +548,13 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2025-02-01' = {
     agentPoolProfiles: [
       {
         name: 'npsystem'
-        count: 3
-        vmSize: 'Standard_DS2_v2'
+        count: 2  // Reduzido de 3 para 2
+        vmSize: 'Standard_DS2_v2'  // 2 vCPUs cada = 4 vCPUs total
         osDiskSizeGB: 80
         osDiskType: 'Ephemeral'
         osType: 'Linux'
-        minCount: 3
-        maxCount: 4
+        minCount: 2  // Reduzido de 3 para 2
+        maxCount: 3  // Reduzido de 4 para 3
         vnetSubnetID: vnetNodePoolSubnetResourceId
         enableAutoScaling: true
         type: 'VirtualMachineScaleSets'
@@ -578,13 +575,13 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2025-02-01' = {
       }
       {
         name: 'npuser01'
-        count: 2
-        vmSize: 'Standard_DS3_v2'
-        osDiskSizeGB: 120
+        count: 1  // Reduzido de 2 para 1
+        vmSize: 'Standard_DS2_v2'  // Mudado de DS3_v2 para DS2_v2 (2 vCPUs)
+        osDiskSizeGB: 80 // Reduzido de 120 para 80GB
         osDiskType: 'Ephemeral'
         osType: 'Linux'
-        minCount: 2
-        maxCount: 5
+        minCount: 1  // Reduzido de 2 para 1
+        maxCount: 3  // Reduzido de 5 para 3
         vnetSubnetID: vnetNodePoolSubnetResourceId
         enableAutoScaling: true
         type: 'VirtualMachineScaleSets'
@@ -653,7 +650,6 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2025-02-01' = {
     nodeResourceGroup: nodeResourceGroupName
     enableRBAC: true
     enablePodSecurityPolicy: false
-    maxAgentPools: 2
     networkProfile: {
       networkPlugin: 'azure'
       networkPolicy: 'azure'

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "k8sRbacEntraAdminGroupObjectID": {
+      "value": "93ae7ed7-8077-4ed4-9947-ca3e991a253f"
+    },
+    "k8sRbacEntraProfileTenantId": {
+      "value": "cdbba3b9-3344-40cd-9f2d-5a463efc272d"
+    }
+  }
+}
