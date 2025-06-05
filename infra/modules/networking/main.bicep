@@ -34,8 +34,8 @@ var hubVnetAddressPrefix = '10.200.0.0/24'
 var spokeVnetAddressPrefix = '10.240.0.0/16'
 
 // Hub subnets
-var gatewaySubnetPrefix = '10.200.0.0/27'
-var azureFirewallSubnetPrefix = '10.200.0.32/26'
+var gatewaySubnetPrefix = '10.200.0.64/27'
+var azureFirewallSubnetPrefix = '10.200.0.0/26'
 var bastionSubnetPrefix = '10.200.0.96/27'
 var hubNodePoolSubnetPrefix = '10.200.0.128/26'
 

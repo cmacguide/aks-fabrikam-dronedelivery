@@ -129,8 +129,8 @@ set_environment_variables() {
     fi
     
     if [ -z "$KUBERNETES_VERSION" ]; then
-        azd env set KUBERNETES_VERSION "1.29"
-        log_info "Set Kubernetes version to 1.29"
+        azd env set KUBERNETES_VERSION "1.30.12"
+        log_info "Set Kubernetes version to 1.30.12"
     fi
     
     log_success "Environment variables configured"

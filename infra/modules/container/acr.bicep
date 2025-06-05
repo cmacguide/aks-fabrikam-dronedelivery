@@ -9,9 +9,6 @@ targetScope = 'resourceGroup'
 @description('Primary deployment location')
 param location string = resourceGroup().location
 
-@description('Environment name')
-param environmentName string
-
 @description('Unique identifier for resource naming')
 param uniqueId string
 
@@ -22,8 +19,8 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var acrName = 'acr${uniqueId}'
-var acrSku = environmentName == 'prod' ? 'Premium' : 'Standard'
+var acrName = 'acrreg${uniqueId}'
+var acrSku = 'Premium' // Using Premium SKU for region compatibility
 
 // ============================================================================
 // CONTAINER REGISTRY
@@ -38,9 +35,9 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
   }
   properties: {
     adminUserEnabled: false
+    // Network rules only for Premium SKU
     networkRuleSet: {
       defaultAction: 'Allow'
-      virtualNetworkRules: []
       ipRules: []
     }
     policies: {
@@ -49,11 +46,11 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
       }
       trustPolicy: {
         type: 'Notary'
-        status: 'enabled'
+        status: 'enabled' // Trust policy supported in Premium SKU
       }
       retentionPolicy: {
         days: 30
-        status: 'enabled'
+        status: 'enabled' // Retention policy supported in Premium SKU
       }
     }
     encryption: {
@@ -61,7 +58,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
     }
     dataEndpointEnabled: false
     publicNetworkAccess: 'Enabled'
-    zoneRedundancy: environmentName == 'prod' ? 'Enabled' : 'Disabled'
+    // Zone redundancy only supported for Premium SKU
   }
 }
 

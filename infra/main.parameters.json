@@ -15,7 +15,7 @@
 			"value": "${DOMAIN_NAME=fabrikam.com}"
 		},
 		"kubernetesVersion": {
-			"value": "${KUBERNETES_VERSION=1.29}"
+			"value": "${KUBERNETES_VERSION=1.30.12}"
 		}
 	}
 }

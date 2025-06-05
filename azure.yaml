@@ -7,53 +7,11 @@ metadata:
   author: "Azure Architecture Team"
   repositoryUrl: "https://github.com/mspnp/aks-fabrikam-dronedelivery"
 
-# Infrastructure definition
+# Infrastructure definition - AKS cluster and supporting services
 infra:
   provider: bicep
   path: infra
   module: main
-
-# Service definitions - microservices that will be deployed
-services:
-  delivery:
-    language: dotnet
-    project: src/delivery
-    host: containerapp
-    docker:
-      path: ./src/delivery/Dockerfile
-      context: ./src/delivery
-
-  ingestion:
-    language: nodejs
-    project: src/ingestion
-    host: containerapp
-    docker:
-      path: ./src/ingestion/Dockerfile
-      context: ./src/ingestion
-
-  workflow:
-    language: java
-    project: src/workflow
-    host: containerapp
-    docker:
-      path: ./src/workflow/Dockerfile
-      context: ./src/workflow
-
-  dronescheduler:
-    language: dotnet
-    project: src/dronescheduler
-    host: containerapp
-    docker:
-      path: ./src/dronescheduler/Dockerfile
-      context: ./src/dronescheduler
-
-  package:
-    language: nodejs
-    project: src/package
-    host: containerapp
-    docker:
-      path: ./src/package/Dockerfile
-      context: ./src/package
 
 # Hooks for custom deployment steps
 hooks:
@@ -66,47 +24,3 @@ hooks:
     shell: sh
     run: chmod +x ./infra/hooks/postprovision.sh && ./infra/hooks/postprovision.sh
     continueOnError: false
-
-# Pipeline configuration for CI/CD
-pipeline:
-  provider: github
-  variables:
-    - AZURE_SUBSCRIPTION_ID
-    - AZURE_TENANT_ID
-    - AZURE_CLIENT_ID
-    - AZURE_CLIENT_SECRET
-
-# Environment-specific overrides
-environments:
-  development:
-    values:
-      - name: ENVIRONMENT_NAME
-        value: dev
-      - name: KUBERNETES_VERSION
-        value: "1.29"
-      - name: NODE_COUNT
-        value: "3"
-      - name: VM_SIZE
-        value: Standard_D4s_v3
-
-  staging:
-    values:
-      - name: ENVIRONMENT_NAME
-        value: staging
-      - name: KUBERNETES_VERSION
-        value: "1.29"
-      - name: NODE_COUNT
-        value: "5"
-      - name: VM_SIZE
-        value: Standard_D8s_v3
-
-  production:
-    values:
-      - name: ENVIRONMENT_NAME
-        value: prod
-      - name: KUBERNETES_VERSION
-        value: "1.29"
-      - name: NODE_COUNT
-        value: "10"
-      - name: VM_SIZE
-        value: Standard_D16s_v3

@@ -17,7 +17,7 @@ param environmentName string
 param uniqueId string
 
 @description('Kubernetes version for the AKS cluster')
-param kubernetesVersion string = '1.29'
+param kubernetesVersion string = '1.30.12'
 
 @description('Object ID of the Azure AD group with admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
@@ -37,6 +37,9 @@ param containerRegistryId string
 @description('Resource ID of the Key Vault for secrets')
 param keyVaultId string
 
+@description('Resource ID of the Log Analytics Workspace for monitoring')
+param logAnalyticsWorkspaceId string
+
 @description('IP ranges authorized to contact the Kubernetes API server')
 param clusterAuthorizedIPRanges array = []
 
@@ -55,8 +58,6 @@ param tags object = {}
 
 var clusterName = 'aks-${environmentName}-${uniqueId}'
 var nodeResourceGroupName = 'MC_${resourceGroup().name}_${clusterName}_${location}'
-var logAnalyticsWorkspaceName = 'la-${clusterName}'
-var containerInsightsSolutionName = 'ContainerInsights(${logAnalyticsWorkspaceName})'
 
 // RBAC role definitions
 var keyVaultSecretsUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
@@ -67,36 +68,24 @@ var acrPullRole = subscriptionResourceId('Microsoft.Authorization/roleDefinition
 
 // Extract VNet resource group and names from resource IDs
 var vnetResourceGroup = split(vnetResourceId, '/')[4]
+// Container registry name extraction
 var containerRegistryName = last(split(containerRegistryId, '/'))
 
+// Log Analytics Workspace name extraction
+var logAnalyticsWorkspaceName = last(split(logAnalyticsWorkspaceId, '/'))
+var containerInsightsSolutionName = 'ContainerInsights(${logAnalyticsWorkspaceName})'
+
 // ============================================================================
-// LOG ANALYTICS WORKSPACE
+// MONITORING SOLUTIONS
 // ============================================================================
 
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: logAnalyticsWorkspaceName
-  location: location
-  tags: tags
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: 30
-    features: {
-      searchVersion: 1
-      legacy: 0
-      enableLogAccessUsingOnlyResourcePermissions: true
-    }
-  }
-}
-
-// Container Insights solution
+// Container Insights solution for monitoring
 resource containerInsightsSolution 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' = {
   name: containerInsightsSolutionName
   location: location
   tags: tags
   properties: {
-    workspaceResourceId: logAnalyticsWorkspace.id
+    workspaceResourceId: logAnalyticsWorkspaceId
   }
   plan: {
     name: containerInsightsSolutionName
@@ -216,10 +205,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         enabled: false
       }
       omsagent: {
-        enabled: true
-        config: {
-          logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.id
-        }
+        enabled: false
       }
       azureKeyvaultSecretsProvider: {
         enabled: true
@@ -249,12 +235,6 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
     securityProfile: {
       workloadIdentity: {
         enabled: true
-      }
-      defender: {
-        logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.id
-        securityMonitoring: {
-          enabled: true
-        }
       }
     }
 
@@ -509,58 +489,59 @@ resource resourceLimitsPolicy 'Microsoft.Authorization/policyAssignments@2022-06
 // MONITORING AND ALERTING
 // ============================================================================
 
+// TODO: Re-enable diagnostic settings after Log Analytics Workspace is properly created
 // Diagnostic settings for AKS cluster
-resource aksClusterDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  scope: aksCluster
-  name: 'default'
-  properties: {
-    workspaceId: logAnalyticsWorkspace.id
-    logs: [
-      {
-        category: 'cluster-autoscaler'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-      {
-        category: 'kube-controller-manager'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-      {
-        category: 'kube-audit-admin'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-      {
-        category: 'guard'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-    ]
-    metrics: [
-      {
-        category: 'AllMetrics'
-        enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
-      }
-    ]
-  }
-}
+// resource aksClusterDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+//   scope: aksCluster
+//   name: 'default'
+//   properties: {
+//     workspaceId: logAnalyticsWorkspaceId
+//     logs: [
+//       {
+//         category: 'cluster-autoscaler'
+//         enabled: true
+//         retentionPolicy: {
+//           days: 30
+//           enabled: true
+//         }
+//       }
+//       {
+//         category: 'kube-controller-manager'
+//         enabled: true
+//         retentionPolicy: {
+//           days: 30
+//           enabled: true
+//         }
+//       }
+//       {
+//         category: 'kube-audit-admin'
+//         enabled: true
+//         retentionPolicy: {
+//           days: 30
+//           enabled: true
+//         }
+//       }
+//       {
+//         category: 'guard'
+//         enabled: true
+//         retentionPolicy: {
+//           days: 30
+//           enabled: true
+//         }
+//       }
+//     ]
+//     metrics: [
+//       {
+//         category: 'AllMetrics'
+//         enabled: true
+//         retentionPolicy: {
+//           days: 30
+//           enabled: true
+//         }
+//       }
+//     ]
+//   }
+// }
 
 // Node CPU utilization alert
 resource nodeCpuUtilizationAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
@@ -720,7 +701,7 @@ output kubeletIdentityObjectId string = aksCluster.properties.identityProfile.ku
 output kubeletIdentityClientId string = aksCluster.properties.identityProfile.kubeletidentity.clientId
 output oidcIssuerUrl string = aksCluster.properties.oidcIssuerProfile.issuerURL
 output nodeResourceGroupName string = nodeResourceGroupName
-output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspaceId
 output aksToKeyVaultIdentityId string = aksToKeyVaultIdentity.id
 output aksToKeyVaultIdentityClientId string = aksToKeyVaultIdentity.properties.clientId
 

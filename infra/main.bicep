@@ -19,7 +19,7 @@ param geoRedundancyLocation string = 'centralus'
 param environmentName string = 'dev'
 
 @description('Kubernetes version for AKS cluster')
-param kubernetesVersion string = '1.29'
+param kubernetesVersion string 
 
 @description('Object ID of the Azure AD group that will have admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
@@ -131,7 +131,6 @@ module containerRegistry 'modules/container/acr.bicep' = {
   scope: containerRG
   params: {
     location: location
-    environmentName: environmentName
     uniqueId: uniqueId
     tags: tags
   }
@@ -147,6 +146,21 @@ module dataServices 'modules/data/main.bicep' = {
   params: {
     location: location
     geoRedundancyLocation: geoRedundancyLocation
+    environmentName: environmentName
+    uniqueId: uniqueId
+    tags: tags
+  }
+}
+
+// ============================================================================
+// OBSERVABILITY MODULE (Application Insights)
+// ============================================================================
+
+module observability 'modules/observability/main.bicep' = {
+  name: 'observability-deployment'
+  scope: computeRG
+  params: {
+    location: location
     environmentName: environmentName
     uniqueId: uniqueId
     tags: tags
@@ -171,6 +185,7 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
     subnetResourceId: networking.outputs.aksSubnetId
     containerRegistryId: containerRegistry.outputs.registryId
     keyVaultId: security.outputs.keyVaultId
+    logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
     tags: tags
   }
 }
@@ -179,19 +194,29 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
 // WORKLOAD MODULE (Microservices deployment)
 // ============================================================================
 
-module workload 'modules/workload/main.bicep' = {
-  name: 'workload-deployment'
-  scope: computeRG
-  params: {
-    aksClusterName: aksCluster.outputs.clusterName
-    containerRegistryName: containerRegistry.outputs.registryName
-  }
-}
+// TODO: Deploy workloads after infrastructure is complete
+// module workload 'modules/workload/main.bicep' = {
+//   name: 'workload-deployment'
+//   scope: computeRG
+//   params: {
+//     aksClusterName: aksCluster.outputs.clusterName
+//     containerRegistryName: containerRegistry.outputs.registryName
+//   }
+// }
 
 // ============================================================================
 // OUTPUTS
 // ============================================================================
 
+// Required outputs for Azure Developer CLI
+output AZURE_LOCATION string = location
+output AZURE_TENANT_ID string = tenant().tenantId
+output AZURE_RESOURCE_GROUP string = computeRG.name
+output RESOURCE_GROUP_ID string = computeRG.id
+output KUBERNETES_VERSION string = kubernetesVersion
+output AKS_CLUSTER_NAME string = aksCluster.outputs.clusterName
+
+// Resource group information
 output resourceGroupNames object = resourceGroupNames
 output aksClusterName string = aksCluster.outputs.clusterName
 output containerRegistryName string = containerRegistry.outputs.registryName
@@ -199,12 +224,19 @@ output keyVaultName string = security.outputs.keyVaultName
 output applicationGatewayFqdn string = networking.outputs.applicationGatewayFqdn
 output aksClusterFqdn string = aksCluster.outputs.clusterFqdn
 
+// Application Insights outputs
+output applicationInsightsId string = observability.outputs.applicationInsightsId
+output applicationInsightsName string = observability.outputs.applicationInsightsName
+output applicationInsightsInstrumentationKey string = observability.outputs.instrumentationKey
+output applicationInsightsConnectionString string = observability.outputs.connectionString
+
 // Application endpoints
 output endpoints object = {
   applicationGateway: networking.outputs.applicationGatewayFqdn
   aksCluster: aksCluster.outputs.clusterFqdn
   containerRegistry: containerRegistry.outputs.registryLoginServer
   keyVault: security.outputs.keyVaultUri
+  applicationInsights: observability.outputs.applicationInsightsName
 }
 
 // Connection information for troubleshooting
@@ -212,4 +244,5 @@ output connectionInfo object = {
   aksGetCredentials: 'az aks get-credentials --name ${aksCluster.outputs.clusterName} --resource-group ${resourceGroupNames.compute}'
   acrLogin: 'az acr login --name ${containerRegistry.outputs.registryName}'
   keyVaultAccess: 'az keyvault show --name ${security.outputs.keyVaultName}'
+  applicationInsights: 'az monitor app-insights show --app ${observability.outputs.applicationInsightsName} --resource-group ${resourceGroupNames.compute}'
 }

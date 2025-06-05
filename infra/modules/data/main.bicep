@@ -73,12 +73,12 @@ var redisConfig = {
 
 var serviceBusConfig = {
   dev: {
-    sku: 'Standard'
-    tier: 'Standard'
+    sku: 'Basic'
+    tier: 'Basic'
   }
   staging: {
-    sku: 'Premium'
-    tier: 'Premium'
+    sku: 'Standard'
+    tier: 'Standard'
   }
   prod: {
     sku: 'Premium'

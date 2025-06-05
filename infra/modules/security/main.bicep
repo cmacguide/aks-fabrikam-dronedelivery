@@ -57,7 +57,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
-    enablePurgeProtection: false // Allow purge for development
+    enablePurgeProtection: true // Enable purge protection for security
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Allow'
@@ -75,43 +75,43 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 resource deliveryManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.delivery
   location: location
-  tags: union(tags, { 'Service': 'delivery' })
+  tags: union(tags, { Service: 'delivery' })
 }
 
 resource ingestionManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.ingestion
   location: location
-  tags: union(tags, { 'Service': 'ingestion' })
+  tags: union(tags, { Service: 'ingestion' })
 }
 
 resource workflowManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.workflow
   location: location
-  tags: union(tags, { 'Service': 'workflow' })
+  tags: union(tags, { Service: 'workflow' })
 }
 
 resource droneschedulerManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.dronescheduler
   location: location
-  tags: union(tags, { 'Service': 'dronescheduler' })
+  tags: union(tags, { Service: 'dronescheduler' })
 }
 
 resource packageManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.package
   location: location
-  tags: union(tags, { 'Service': 'package' })
+  tags: union(tags, { Service: 'package' })
 }
 
 resource ingressControllerManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.ingressController
   location: location
-  tags: union(tags, { 'Service': 'ingress-controller' })
+  tags: union(tags, { Service: 'ingress-controller' })
 }
 
 resource applicationGatewayManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.applicationGateway
   location: location
-  tags: union(tags, { 'Service': 'application-gateway' })
+  tags: union(tags, { Service: 'application-gateway' })
 }
 
 // ============================================================================
