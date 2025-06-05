@@ -1,0 +1,21 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"location": {
+			"value": "${AZURE_LOCATION=eastus2}"
+		},
+		"environmentName": {
+			"value": "${ENVIRONMENT_NAME=dev}"
+		},
+		"k8sRbacEntraAdminGroupObjectID": {
+			"value": "${K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID}"
+		},
+		"domainName": {
+			"value": "${DOMAIN_NAME=fabrikam.com}"
+		},
+		"kubernetesVersion": {
+			"value": "${KUBERNETES_VERSION=1.29}"
+		}
+	}
+}

@@ -1,7 +1,1 @@
-<html>
-<head><title>502 Bad Gateway</title></head>
-<body>
-<center><h1>502 Bad Gateway</h1></center>
-<hr><center>Microsoft-Azure-Application-Gateway/v2</center>
-</body>
-</html>
+{"deliveryId":"6974575a-5687-4d69-a8b5-9534b8f410b0","ownerId":"myowner","pickupLocation":"my pickup","pickupTime":"2019-05-08T20:00:00.000+00:00","deadline":"","expedited":true,"confirmationRequired":"None","packageInfo":{"packageId":"mypackage","size":"Small","weight":10.0,"tag":"mytag"},"dropOffLocation":"drop off"}
