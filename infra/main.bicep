@@ -7,31 +7,33 @@ targetScope = 'subscription'
 // ============================================================================
 // PARAMETERS
 // ============================================================================
-
-@description('Primary Azure region for deployment')
-param location string = 'eastus2'
-
-@description('Secondary region for geo-redundant services')
-param geoRedundancyLocation string = 'centralus'
-
 @description('Environment name (dev, staging, prod)')
 @allowed(['dev', 'staging', 'prod'])
-param environmentName string = 'dev'
+param environmentName string
+
+@description('Primary Azure region for deployment')
+param location string
+
+@description('Secondary region for geo-redundant services')
+param geoRedundancyLocation string
+
+@description('Tenant ID for Azure AD integration')
+param k8sRbacEntraProfileTenantId string
 
 @description('Kubernetes version for AKS cluster')
 param kubernetesVersion string 
 
+@description('Node Count for AKS Node System')
+param aksSystemNodeCount int 
+
 @description('Object ID of the Azure AD group that will have admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
 
-@description('Tenant ID for Azure AD integration')
-param k8sRbacEntraProfileTenantId string = tenant().tenantId
-
 @description('Domain name for the application (e.g., fabrikam.com)')
-param domainName string = 'fabrikam.com'
+param domainName string
 
 @description('Application name prefix for resource naming')
-param appName string = 'dronedelivery'
+param appName string
 
 @description('Tags to be applied to all resources')
 param tags object = {
@@ -100,7 +102,6 @@ module networking 'modules/networking/main.bicep' = {
   scope: networkingRG
   params: {
     location: location
-    environmentName: environmentName
     uniqueId: uniqueId
     tags: tags
   }
@@ -179,6 +180,7 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
     environmentName: environmentName
     uniqueId: uniqueId
     kubernetesVersion: kubernetesVersion
+    aksSystemNodeCount: aksSystemNodeCount
     k8sRbacEntraAdminGroupObjectID: k8sRbacEntraAdminGroupObjectID
     k8sRbacEntraProfileTenantId: k8sRbacEntraProfileTenantId
     vnetResourceId: networking.outputs.spokeVnetId

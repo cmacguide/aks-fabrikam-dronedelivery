@@ -25,6 +25,32 @@ param k8sRbacEntraAdminGroupObjectID string
 @description('Tenant ID for Azure AD integration')
 param k8sRbacEntraProfileTenantId string
 
+@description('Node Count for AKS Node System')
+param aksSystemNodeCount int
+
+@description('Node Count for AKS Node User')
+param aksUserNodeCount int
+
+@description('Node Size for AKS')
+param aksNodeSize string
+
+@description('Min Node Count for AKS')
+param aksMinCount int
+
+@description('Max Node Count for AKS')
+param aksMaxCount int
+
+@description('Service CIDR AKS')
+param aksServiceCidr string
+
+@description('DNS Service Ip AKS')
+param aksDnsServiceIP string
+
+@description('Load Balancer SKU AKS')
+param aksLoadBalancerSku string
+@description('Load Balancer SKU AKS')
+param aksEnableAutoScaling bool
+
 @description('Resource ID of the Virtual Network where AKS will be deployed')
 param vnetResourceId string
 
@@ -137,13 +163,13 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
     agentPoolProfiles: [
       {
         name: 'npsystem'
-        count: 2
-        vmSize: 'Standard_DS2_v2'
+        count: aksSystemNodeCount
+        vmSize: aksNodeSize
         osDiskSizeGB: 80
         osDiskType: 'Ephemeral'
         osType: 'Linux'
-        minCount: 2
-        maxCount: 4
+        minCount: aksMinCount
+        maxCount: aksMaxCount
         vnetSubnetID: subnetResourceId
         enableAutoScaling: true
         type: 'VirtualMachineScaleSets'
@@ -167,15 +193,16 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       }
       {
         name: 'npuser01'
-        count: 1
-        vmSize: 'Standard_DS2_v2'
+        count: aksUserNodeCount
+        vmSize: aksNodeSize
         osDiskSizeGB: 80
         osDiskType: 'Ephemeral'
         osType: 'Linux'
-        minCount: 1
-        maxCount: 5
+        minCount: aksMinCount
+        maxCount: aksMaxCount
         vnetSubnetID: subnetResourceId
-        enableAutoScaling: true
+        enableAutoScaling: aksEnableAutoScaling 
+
         type: 'VirtualMachineScaleSets'
         mode: 'User'
         scaleSetPriority: 'Regular'
@@ -205,7 +232,10 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         enabled: false
       }
       omsagent: {
-        enabled: false
+        enabled: true
+        config: {
+          logAnalyticsWorkspaceResourceID: logAnalyticsWorkspaceId
+        }
       }
       azureKeyvaultSecretsProvider: {
         enabled: true
@@ -250,10 +280,10 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       networkPlugin: 'azure'
       networkPolicy: 'azure'
       outboundType: 'userDefinedRouting'
-      loadBalancerSku: 'standard'
+      loadBalancerSku: aksLoadBalancerSku
       loadBalancerProfile: null
-      serviceCidr: '172.16.0.0/16'
-      dnsServiceIP: '172.16.0.10'
+      serviceCidr: aksServiceCidr
+      dnsServiceIP: aksDnsServiceIP
       podCidr: null
     }
 

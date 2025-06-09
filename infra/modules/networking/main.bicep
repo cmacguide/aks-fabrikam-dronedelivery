@@ -9,9 +9,6 @@ targetScope = 'resourceGroup'
 @description('Primary deployment location')
 param location string = resourceGroup().location
 
-@description('Environment name')
-param environmentName string
-
 @description('Unique identifier for resource naming')
 param uniqueId string
 
@@ -26,7 +23,6 @@ var hubVnetName = 'vnet-hub-${uniqueId}'
 var spokeVnetName = 'vnet-spoke-${uniqueId}'
 var applicationGatewayName = 'agw-${uniqueId}'
 var publicIpName = 'pip-agw-${uniqueId}'
-var bastionName = 'bas-${uniqueId}'
 var firewallName = 'afw-${uniqueId}'
 
 // Address spaces
@@ -257,6 +253,423 @@ resource privateEndpointsNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01
 }
 
 // ============================================================================
+// AZURE FIREWALL PUBLIC IP
+// ============================================================================
+
+resource firewallPublicIp 'Microsoft.Network/publicIPAddresses@2023-09-01' = {
+  name: 'pip-${firewallName}'
+  location: location
+  tags: tags
+  zones: ['1', '2', '3']
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+    idleTimeoutInMinutes: 4
+    publicIPAddressVersion: 'IPv4'
+  }
+}
+
+// ============================================================================
+// IP GROUPS FOR AKS SUBNETS
+// ============================================================================
+
+resource aksIpGroup 'Microsoft.Network/ipGroups@2023-09-01' = {
+  name: 'ipg-aks-${uniqueId}'
+  location: location
+  tags: tags
+  properties: {
+    ipAddresses: [
+      aksSystemSubnetPrefix
+      aksUserSubnetPrefix
+    ]
+  }
+}
+
+// ============================================================================
+// AZURE FIREWALL
+// ============================================================================
+
+resource azureFirewall 'Microsoft.Network/azureFirewalls@2023-09-01' = {
+  name: firewallName
+  location: location
+  tags: tags
+  zones: ['1', '2', '3']
+  properties: {
+    sku: {
+      name: 'AZFW_VNet'
+      tier: 'Standard'
+    }
+    threatIntelMode: 'Alert'
+    ipConfigurations: [
+      {
+        name: 'firewallIpConfig'
+        properties: {
+          subnet: {
+            id: '${hubVnet.id}/subnets/AzureFirewallSubnet'
+          }
+          publicIPAddress: {
+            id: firewallPublicIp.id
+          }
+        }
+      }
+    ]
+    natRuleCollections: []
+    networkRuleCollections: [
+      {
+        name: 'org-wide-allowed'
+        properties: {
+          action: {
+            type: 'Allow'
+          }
+          priority: 100
+          rules: [
+            {
+              name: 'dns'
+              sourceAddresses: ['*']
+              protocols: ['UDP']
+              destinationAddresses: ['*']
+              destinationPorts: ['53']
+            }
+            {
+              name: 'ntp'
+              description: 'Network Time Protocol (NTP) time synchronization'
+              sourceAddresses: ['*']
+              protocols: ['UDP']
+              destinationPorts: ['123']
+              destinationAddresses: ['*']
+            }
+          ]
+        }
+      }
+      {
+        name: 'AKS-Global-Requirements'
+        properties: {
+          action: {
+            type: 'Allow'
+          }
+          priority: 200
+          rules: [
+            {
+              name: 'tunnel-front-pod-tcp'
+              description: 'Tunnel front pod to communicate with the tunnel end on the API server'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: ['TCP']
+              destinationPorts: ['22', '9000']
+              destinationAddresses: ['AzureCloud']
+            }
+            {
+              name: 'tunnel-front-pod-udp'
+              description: 'Tunnel front pod to communicate with the tunnel end on the API server'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: ['UDP']
+              destinationPorts: ['1194']
+              destinationAddresses: ['AzureCloud']
+            }
+            {
+              name: 'managed-k8s-api-tcp-443'
+              description: 'API server communication without SNI extension'
+              protocols: ['TCP']
+              sourceIpGroups: [aksIpGroup.id]
+              destinationAddresses: ['AzureCloud']
+              destinationPorts: ['443']
+            }
+          ]
+        }
+      }
+      {
+        name: 'AKS-Fabrikam-DroneDelivery'
+        properties: {
+          action: {
+            type: 'Allow'
+          }
+          priority: 300
+          rules: [
+            {
+              name: 'servicebus'
+              description: 'Azure Service Bus access for apps'
+              protocols: ['TCP']
+              sourceIpGroups: [aksIpGroup.id]
+              destinationAddresses: ['ServiceBus.EastUS2']
+              destinationPorts: ['5671']
+            }
+            {
+              name: 'azure-cosmosdb'
+              description: 'Azure Cosmos DB access'
+              protocols: ['TCP']
+              sourceIpGroups: [aksIpGroup.id]
+              destinationAddresses: ['AzureCosmosDB.EastUS2']
+              destinationPorts: ['443']
+            }
+            {
+              name: 'azure-mongodb'
+              description: 'Azure MongoDB access'
+              protocols: ['TCP']
+              sourceIpGroups: [aksIpGroup.id]
+              destinationAddresses: ['AzureCosmosDB.EastUS2']
+              destinationPorts: ['10255']
+            }
+            {
+              name: 'azure-keyvault'
+              description: 'Azure Key Vault access'
+              protocols: ['TCP']
+              sourceIpGroups: [aksIpGroup.id]
+              destinationAddresses: ['AzureKeyVault.EastUS2']
+              destinationPorts: ['443']
+            }
+            {
+              name: 'azure-monitor'
+              description: 'Azure Monitor access'
+              protocols: ['TCP']
+              sourceIpGroups: [aksIpGroup.id]
+              destinationAddresses: ['AzureMonitor']
+              destinationPorts: ['443']
+            }
+          ]
+        }
+      }
+    ]
+    applicationRuleCollections: [
+      {
+        name: 'AKS-Global-Requirements'
+        properties: {
+          action: {
+            type: 'Allow'
+          }
+          priority: 200
+          rules: [
+            {
+              name: 'nodes-to-api-server'
+              description: 'Node to API server communication'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                '*.hcp.eastus2.azmk8s.io'
+                '*.tun.eastus2.azmk8s.io'
+              ]
+            }
+            {
+              name: 'microsoft-container-registry'
+              description: 'Microsoft Container Registry access'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                '*.cdn.mscr.io'
+                'mcr.microsoft.com'
+                '*.data.mcr.microsoft.com'
+              ]
+            }
+            {
+              name: 'management-plane'
+              description: 'Azure management plane access'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [split(environment().resourceManager, '/')[2]]
+            }
+            {
+              name: 'aad-auth'
+              description: 'Microsoft Entra authentication'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [split(environment().authentication.loginEndpoint, '/')[2]]
+            }
+            {
+              name: 'apt-get'
+              description: 'Microsoft packages repository'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: ['packages.microsoft.com']
+            }
+            {
+              name: 'cluster-binaries'
+              description: 'Required binaries repository'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: ['acs-mirror.azureedge.net']
+            }
+            {
+              name: 'ubuntu-security-patches'
+              description: 'Ubuntu security patches'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Http'
+                  port: 80
+                }
+              ]
+              targetFqdns: [
+                'security.ubuntu.com'
+                'azure.archive.ubuntu.com'
+                'changelogs.ubuntu.com'
+              ]
+            }
+            {
+              name: 'azure-monitor'
+              description: 'Azure Monitor for containers'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                'dc.services.visualstudio.com'
+                '*.ods.opinsights.azure.com'
+                '*.oms.opinsights.azure.com'
+                '*.microsoftonline.com'
+                '*.monitoring.azure.com'
+              ]
+            }
+            {
+              name: 'azure-policy'
+              description: 'Azure Policy requirements'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                'gov-prod-policy-data.trafficmanager.net'
+                'raw.githubusercontent.com'
+                'dc.services.visualstudio.com'
+                'data.policy.${environment().suffixes.storage}'
+                'store.policy.${environment().suffixes.storage}'
+              ]
+            }
+          ]
+        }
+      }
+      {
+        name: 'Flux-Requirements'
+        properties: {
+          action: {
+            type: 'Allow'
+          }
+          priority: 300
+          rules: [
+            {
+              name: 'flux-to-github'
+              description: 'Flux to GitHub repository'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                'github.com'
+                'api.github.com'
+              ]
+            }
+            {
+              name: 'accompanying-container-registries'
+              description: 'Additional container registries and services'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                'eastus2.dp.kubernetesconfiguration.azure.com'
+                'mcr.microsoft.com'
+                'raw.githubusercontent.com'
+                split(environment().resourceManager, '/')[2]
+                split(environment().authentication.loginEndpoint, '/')[2]
+                '*.blob.${environment().suffixes.storage}'
+                'azurearcfork8s.azurecr.io'
+                '*.docker.io'
+                '*.docker.com'
+                'ghcr.io'
+                'pkg-containers.githubusercontent.com'
+              ]
+            }
+          ]
+        }
+      }
+      {
+        name: 'AKS-Fabrikam-DroneDelivery'
+        properties: {
+          action: {
+            type: 'Allow'
+          }
+          priority: 400
+          rules: [
+            {
+              name: 'container-registries'
+              description: 'Additional container registries'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              targetFqdns: [
+                'gcr.io'
+                'storage.googleapis.com'
+                'aksrepos.azurecr.io'
+                '*.docker.io'
+                '*.docker.com'
+                '*.azurecr.io'
+              ]
+            }
+            {
+              name: 'azure-cache-redis'
+              description: 'Azure Redis Cache access'
+              sourceIpGroups: [aksIpGroup.id]
+              protocols: [
+                {
+                  protocolType: 'Https'
+                  port: 6380
+                }
+              ]
+              targetFqdns: ['*.redis.cache.windows.net']
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+// ============================================================================
 // ROUTE TABLE
 // ============================================================================
 
@@ -271,7 +684,7 @@ resource routeTable 'Microsoft.Network/routeTables@2023-09-01' = {
         properties: {
           addressPrefix: '0.0.0.0/0'
           nextHopType: 'VirtualAppliance'
-          nextHopIpAddress: '10.200.0.36' // Azure Firewall private IP
+          nextHopIpAddress: azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
         }
       }
     ]
@@ -453,3 +866,5 @@ output privateEndpointsSubnetId string = '${spokeVnet.id}/subnets/snet-privateen
 output applicationGatewayId string = applicationGateway.id
 output applicationGatewayFqdn string = applicationGatewayPublicIp.properties.dnsSettings.fqdn
 output applicationGatewayPublicIpAddress string = applicationGatewayPublicIp.properties.ipAddress
+output azureFirewallId string = azureFirewall.id
+output azureFirewallPrivateIp string = azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress

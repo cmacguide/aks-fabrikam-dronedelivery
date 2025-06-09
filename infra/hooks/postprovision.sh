@@ -35,21 +35,23 @@ log_error() {
 get_deployment_outputs() {
     log_info "Retrieving deployment outputs..."
     
-    # Get the main resource group name (compute RG)
+    # Get resource group names from environment variables
     COMPUTE_RG=$(azd env get-values | grep "AZURE_RESOURCE_GROUP" | cut -d'=' -f2 | tr -d '"')
+    CONTAINER_RG=$(echo "$COMPUTE_RG" | sed 's/compute/container/')
+    SECURITY_RG=$(echo "$COMPUTE_RG" | sed 's/compute/security/')
     
     if [ -z "$COMPUTE_RG" ]; then
         log_error "Could not find compute resource group"
         exit 1
     fi
     
-    # Get deployment outputs
-    AKS_CLUSTER_NAME=$(az deployment group show --resource-group "$COMPUTE_RG" --name "aks-cluster-deployment" --query "properties.outputs.clusterName.value" -o tsv)
-    ACR_NAME=$(az deployment group show --resource-group "$COMPUTE_RG" --name "container-registry-deployment" --query "properties.outputs.registryName.value" -o tsv)
-    KEY_VAULT_NAME=$(az deployment group show --resource-group "$COMPUTE_RG" --name "security-deployment" --query "properties.outputs.keyVaultName.value" -o tsv)
+    # Use environment variables directly (more reliable than deployment outputs)
+    AKS_CLUSTER_NAME=$(azd env get-values | grep "aksClusterName" | cut -d'=' -f2 | tr -d '"')
+    ACR_NAME=$(azd env get-values | grep "containerRegistryName" | cut -d'=' -f2 | tr -d '"')
+    KEY_VAULT_NAME=$(azd env get-values | grep "keyVaultName" | cut -d'=' -f2 | tr -d '"')
     
     if [ -z "$AKS_CLUSTER_NAME" ] || [ -z "$ACR_NAME" ] || [ -z "$KEY_VAULT_NAME" ]; then
-        log_error "Could not retrieve required deployment outputs"
+        log_error "Could not retrieve required values from environment"
         exit 1
     fi
     
@@ -60,16 +62,44 @@ get_deployment_outputs() {
 configure_kubectl() {
     log_info "Configuring kubectl access to AKS cluster..."
     
-    # Get AKS credentials
-    az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing
+    # Fix kubectl config permissions
+    if [ -f ~/.kube/config ]; then
+        chmod 600 ~/.kube/config
+    fi
     
-    # Test kubectl connectivity
-    if kubectl get nodes > /dev/null 2>&1; then
+    # Get AKS credentials with admin access (bypasses Azure AD for post-provisioning)
+    log_info "Getting cluster admin credentials..."
+    az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing --admin
+    
+    # Test kubectl connectivity with timeout
+    log_info "Testing kubectl connectivity..."
+    if timeout 30 kubectl get nodes > /dev/null 2>&1; then
         NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
         log_success "kubectl configured successfully. Found $NODE_COUNT nodes."
+        
+        # Show cluster info
+        log_info "Cluster nodes:"
+        kubectl get nodes -o wide
     else
-        log_error "Failed to connect to AKS cluster with kubectl"
-        exit 1
+        log_warning "Admin credentials failed, trying user credentials with Azure AD..."
+        
+        # Try with regular user credentials (Azure AD authentication)
+        az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing
+        
+        # Test again with user credentials
+        if timeout 30 kubectl get nodes > /dev/null 2>&1; then
+            NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
+            log_success "kubectl configured with user credentials. Found $NODE_COUNT nodes."
+        else
+            log_error "Failed to connect to AKS cluster with kubectl"
+            log_info "Please ensure you are logged into the correct Azure AD tenant and have appropriate permissions"
+            log_info "Tenant ID required: $(azd env get-values | grep 'AZURE_TENANT_ID' | cut -d'=' -f2 | tr -d '\"')"
+            log_info "Admin Group ID: $(azd env get-values | grep 'K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID' | cut -d'=' -f2 | tr -d '\"')"
+            
+            # Continue with deployment but mark as warning
+            log_warning "Continuing with deployment despite kubectl connectivity issues"
+            return 0
+        fi
     fi
 }
 
@@ -131,8 +161,18 @@ generate_certificates() {
 install_agic() {
     log_info "Installing Azure Application Gateway Ingress Controller..."
     
+    # Check if kubectl is working first
+    if ! kubectl get nodes > /dev/null 2>&1; then
+        log_warning "kubectl not working, skipping AGIC installation"
+        return 0
+    fi
+    
     # Add the AGIC Helm repository
-    helm repo add application-gateway-kubernetes-ingress https://appgwingress.blob.core.windows.net/ingress-azure-helm-package/
+    log_info "Adding AGIC Helm repository..."
+    helm repo add application-gateway-kubernetes-ingress https://appgwingress.blob.core.windows.net/ingress-azure-helm-package/ || {
+        log_warning "Failed to add AGIC Helm repository, skipping AGIC installation"
+        return 0
+    }
     helm repo update
     
     # Get Application Gateway details
@@ -140,9 +180,18 @@ install_agic() {
     APP_GATEWAY_NAME=$(az network application-gateway list --resource-group "$NETWORKING_RG" --query "[0].name" -o tsv)
     APP_GATEWAY_ID=$(az network application-gateway show --resource-group "$NETWORKING_RG" --name "$APP_GATEWAY_NAME" --query "id" -o tsv)
     
-    # Get managed identity for AGIC
-    AGIC_IDENTITY_CLIENT_ID=$(az identity show --resource-group "$COMPUTE_RG" --name "uid-ingress-*" --query "clientId" -o tsv)
-    AGIC_IDENTITY_RESOURCE_ID=$(az identity show --resource-group "$COMPUTE_RG" --name "uid-ingress-*" --query "id" -o tsv)
+    # Get managed identity for AGIC from security resource group
+    SECURITY_RG=$(echo "$COMPUTE_RG" | sed 's/compute/security/')
+    AGIC_IDENTITY_NAME=$(az identity list --resource-group "$SECURITY_RG" --query "[?contains(name, 'ingress')].name" -o tsv)
+    AGIC_IDENTITY_CLIENT_ID=$(az identity show --resource-group "$SECURITY_RG" --name "$AGIC_IDENTITY_NAME" --query "clientId" -o tsv)
+    AGIC_IDENTITY_RESOURCE_ID=$(az identity show --resource-group "$SECURITY_RG" --name "$AGIC_IDENTITY_NAME" --query "id" -o tsv)
+    
+    if [ -z "$AGIC_IDENTITY_NAME" ] || [ -z "$AGIC_IDENTITY_CLIENT_ID" ]; then
+        log_warning "Could not find AGIC managed identity, skipping AGIC installation"
+        return 0
+    fi
+    
+    log_info "Using managed identity: $AGIC_IDENTITY_NAME"
     
     # Create AGIC configuration
     cat > /tmp/agic-config.yaml << EOF
@@ -168,17 +217,24 @@ rbac:
 EOF
 
     # Install AGIC
-    helm install agic application-gateway-kubernetes-ingress/ingress-azure \
+    log_info "Installing AGIC with Helm..."
+    if helm install agic application-gateway-kubernetes-ingress/ingress-azure \
         --namespace agic-system \
         --create-namespace \
-        -f /tmp/agic-config.yaml
-    
-    # Wait for AGIC to be ready
-    kubectl wait --for=condition=ready pod -l app=ingress-azure -n agic-system --timeout=300s
+        -f /tmp/agic-config.yaml; then
+        
+        log_info "Waiting for AGIC to be ready..."
+        # Wait for AGIC to be ready with timeout
+        if kubectl wait --for=condition=ready pod -l app=ingress-azure -n agic-system --timeout=300s; then
+            log_success "AGIC installed and configured successfully"
+        else
+            log_warning "AGIC installed but may not be fully ready yet"
+        fi
+    else
+        log_warning "Failed to install AGIC, continuing with deployment"
+    fi
     
     rm -f /tmp/agic-config.yaml
-    
-    log_success "AGIC installed and configured"
 }
 
 # Configure GitOps with Flux

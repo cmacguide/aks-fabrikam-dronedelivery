@@ -1,21 +1,39 @@
 {
-	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-	"contentVersion": "1.0.0.0",
-	"parameters": {
-		"location": {
-			"value": "${AZURE_LOCATION=eastus2}"
-		},
-		"environmentName": {
-			"value": "${ENVIRONMENT_NAME=dev}"
-		},
-		"k8sRbacEntraAdminGroupObjectID": {
-			"value": "${K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID}"
-		},
-		"domainName": {
-			"value": "${DOMAIN_NAME=fabrikam.com}"
-		},
-		"kubernetesVersion": {
-			"value": "${KUBERNETES_VERSION=1.30.12}"
-		}
-	}
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "AZURE_ENV_NAME": {
+      "value": "development"
+    },
+    "appName": {
+      "value": "fabrikam-dronedelivery"
+    },
+    "azureSubscriptionId": {
+      "value": "e57ee4b-1c01-4752-9866-527cf3136b2d"
+    },
+    "azureTenantId": {
+      "value": "83d6df9e-eec5-4d37-be60-97bf712d85ab"
+    },
+    "domainName": {
+      "value": "fabrikam.com"
+    },
+    "environmentName": {
+      "value": "dev"
+    },
+    "geoRedundancyLocation": {
+      "value": "centralus"
+    },
+    "k8sRbacEntraAdminGroupObjectID": {
+      "value": "93ae7ed7-8077-4ed4-9947-ca3e991a253f"
+    },
+    "k8sRbacEntraProfileTenantId": {
+      "value": "cdbba3b9-3344-40cd-9f2d-5a463efc272d"
+    },
+    "kubernetesVersion": {
+      "value": "1.30.12"
+    },
+    "location": {
+      "value": "eastus2"
+    }
+  }
 }

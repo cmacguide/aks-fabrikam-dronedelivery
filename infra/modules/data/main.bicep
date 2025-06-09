@@ -94,7 +94,7 @@ var serviceBusConfig = {
 resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   name: cosmosDbAccountName
   location: location
-  tags: union(tags, { 'Service': 'CosmosDB' })
+  tags: union(tags, { 'azd-service-name': 'CosmosDB' })
   kind: 'GlobalDocumentDB'
   properties: {
     consistencyPolicy: {
@@ -136,7 +136,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
 resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   name: packageCosmosDbName
   location: location
-  tags: union(tags, { 'Service': 'Package-CosmosDB' })
+  tags: union(tags, { 'azd-service-name': 'Package-CosmosDB' })
   kind: 'MongoDB'
   properties: {
     consistencyPolicy: {
@@ -176,7 +176,7 @@ resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
 resource deliveryRedisCache 'Microsoft.Cache/redis@2023-08-01' = {
   name: deliveryRedisName
   location: location
-  tags: union(tags, { 'Service': 'Delivery-Redis' })
+  tags: union(tags, { 'azd-service-name': 'Delivery-Redis' })
   properties: {
     sku: {
       name: redisConfig[environmentName].sku
@@ -200,7 +200,7 @@ resource deliveryRedisCache 'Microsoft.Cache/redis@2023-08-01' = {
 resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
   name: serviceBusNamespaceName
   location: location
-  tags: union(tags, { 'Service': 'Ingestion-ServiceBus' })
+  tags: union(tags, { 'azd-service-name': 'Ingestion-ServiceBus' })
   sku: {
     name: serviceBusConfig[environmentName].sku
     tier: serviceBusConfig[environmentName].tier
@@ -216,7 +216,7 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   parent: serviceBusNamespace
   name: serviceBusQueueName
-  properties: {
+  properties: union({
     lockDuration: 'PT1M'
     maxSizeInMegabytes: 1024
     requiresDuplicateDetection: false
@@ -225,10 +225,11 @@ resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-prev
     deadLetteringOnMessageExpiration: true
     duplicateDetectionHistoryTimeWindow: 'PT10M'
     maxDeliveryCount: 10
-    autoDeleteOnIdle: 'P10675199DT2H48M5.4775807S'
     enablePartitioning: false
     enableExpress: false
-  }
+  }, serviceBusConfig[environmentName].tier != 'Basic' ? {
+    autoDeleteOnIdle: 'P10675199DT2H48M5.4775807S'
+  } : {})
 }
 
 // Service Bus authorization rules
