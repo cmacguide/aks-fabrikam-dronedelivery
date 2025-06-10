@@ -9,7 +9,7 @@ targetScope = 'subscription'
 // ============================================================================
 @description('Environment name (dev, staging, prod)')
 @allowed(['dev', 'staging', 'prod'])
-param environmentName string
+param environmentName string 
 
 @description('Primary Azure region for deployment')
 param location string
@@ -25,6 +25,31 @@ param kubernetesVersion string
 
 @description('Node Count for AKS Node System')
 param aksSystemNodeCount int 
+
+@description('Node Count for AKS User Node Pool')
+param aksUserNodeCount int 
+
+@description('VM size for AKS nodes')
+param aksNodeSize string
+
+@description('Enable auto-scaling for AKS node pools')
+param aksEnableAutoScaling bool
+
+@description('Minimum node count for auto-scaling')
+param aksMinCount int
+
+@description('Maximum node count for auto-scaling')
+param aksMaxCount int
+
+@description('AKS service CIDR range')
+param aksServiceCidr string
+
+@description('AKS DNS service IP address')
+param aksDnsServiceIP string
+
+@description('Load balancer SKU for AKS')
+@allowed(['Basic', 'Standard'])
+param aksLoadBalancerSku string
 
 @description('Object ID of the Azure AD group that will have admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
@@ -181,6 +206,8 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
     uniqueId: uniqueId
     kubernetesVersion: kubernetesVersion
     aksSystemNodeCount: aksSystemNodeCount
+    aksUserNodeCount: aksUserNodeCount    
+    aksNodeSize:aksNodeSize
     k8sRbacEntraAdminGroupObjectID: k8sRbacEntraAdminGroupObjectID
     k8sRbacEntraProfileTenantId: k8sRbacEntraProfileTenantId
     vnetResourceId: networking.outputs.spokeVnetId
@@ -188,6 +215,12 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
     containerRegistryId: containerRegistry.outputs.registryId
     keyVaultId: security.outputs.keyVaultId
     logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
+    aksServiceCidr:aksServiceCidr
+    aksDnsServiceIP:aksDnsServiceIP
+    aksEnableAutoScaling:aksEnableAutoScaling
+    aksLoadBalancerSku:aksLoadBalancerSku
+    aksMaxCount:aksMaxCount
+    aksMinCount:aksMinCount    
     tags: tags
   }
 }
