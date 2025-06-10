@@ -5,8 +5,38 @@
     "AZURE_ENV_NAME": {
       "value": "development"
     },
+    "aksDnsServiceIP": {
+      "value": "172.16.0.0/16"
+    },
+    "aksEnableAutoScaling": {
+      "value": "true"
+    },
+    "aksLoadBalancerSku": {
+      "value": ""
+    },
+    "aksMaxCount": {
+      "value": "10"
+    },
+    "aksMinCount": {
+      "value": "1"
+    },
+    "aksNodeSize": {
+      "value": "Standard_D2s_v3"
+    },
+    "aksServiceCidr": {
+      "value": "172.16.0.0/16"
+    },
+    "aksSystemNodeCount": {
+      "value": "2"
+    },
+    "aksUserNodeCount": {
+      "value": "1"
+    },
     "appName": {
       "value": "fabrikam-dronedelivery"
+    },
+    "appVersion": {
+      "value": "v1.0.0"
     },
     "azureSubscriptionId": {
       "value": "e57ee4b-1c01-4752-9866-527cf3136b2d"
@@ -16,6 +46,15 @@
     },
     "domainName": {
       "value": "fabrikam.com"
+    },
+    "enableMonitoring": {
+      "value": "true"
+    },
+    "enableNetworkPolicy": {
+      "value": "true"
+    },
+    "enableRbac": {
+      "value": "true"
     },
     "environmentName": {
       "value": "dev"
@@ -34,6 +73,9 @@
     },
     "location": {
       "value": "eastus2"
+    },
+    "logLevel": {
+      "value": "info"
     }
   }
 }
