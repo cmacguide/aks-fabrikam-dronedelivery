@@ -17,7 +17,7 @@ param environmentName string
 param uniqueId string
 
 @description('Kubernetes version for the AKS cluster')
-param kubernetesVersion string = '1.30.12'
+param kubernetesVersion string 
 
 @description('Object ID of the Azure AD group with admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
