@@ -11,7 +11,26 @@ param location string = resourceGroup().location
 
 @description('Unique identifier for resource naming')
 param uniqueId string
-
+@description('Hub Vnet Address Prefix')
+param hubVnetAddressPrefix string
+@description('Spoke Vnet Address Prefix')
+param spokeVnetAddressPrefix string
+@description('Gateway Subnet Prefix')
+param gatewaySubnetPrefix string
+@description('Azure Firewall Subnet Prefix')
+param azureFirewallSubnetPrefix string
+@description('Bastion Subnet Prefix')
+param bastionSubnetPrefix string
+@description('Hub Node Pool Subnet Prefix')
+param hubNodePoolSubnetPrefix string
+@description('Aks System Subnet Prefix')
+param aksSystemSubnetPrefix string
+@description('Aks User Subnet Prefix')
+param aksUserSubnetPrefix string
+@description('Application Gateway User Subnet Prefix')
+param applicationGatewaySubnetPrefix string
+@description('Private Endpoint User Subnet Prefix')
+param privateEndpointsSubnetPrefix string
 @description('Resource tags')
 param tags object = {}
 
@@ -24,22 +43,6 @@ var spokeVnetName = 'vnet-spoke-${uniqueId}'
 var applicationGatewayName = 'agw-${uniqueId}'
 var publicIpName = 'pip-agw-${uniqueId}'
 var firewallName = 'afw-${uniqueId}'
-
-// Address spaces
-var hubVnetAddressPrefix = '10.200.0.0/24'
-var spokeVnetAddressPrefix = '10.240.0.0/16'
-
-// Hub subnets
-var gatewaySubnetPrefix = '10.200.0.64/27'
-var azureFirewallSubnetPrefix = '10.200.0.0/26'
-var bastionSubnetPrefix = '10.200.0.96/27'
-var hubNodePoolSubnetPrefix = '10.200.0.128/26'
-
-// Spoke subnets  
-var aksSystemSubnetPrefix = '10.240.0.0/23'
-var aksUserSubnetPrefix = '10.240.2.0/23'
-var applicationGatewaySubnetPrefix = '10.240.4.0/27'
-var privateEndpointsSubnetPrefix = '10.240.4.32/27'
 
 // ============================================================================
 // HUB VIRTUAL NETWORK
