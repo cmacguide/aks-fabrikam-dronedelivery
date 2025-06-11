@@ -8,15 +8,32 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-
 @description('Secondary location for geo-redundancy')
 param geoRedundancyLocation string
-
 @description('Environment name')
 param environmentName string
-
 @description('Unique identifier for resource naming')
 param uniqueId string
+@description('Consistence Level for Cosmos DB')
+param dbConsistencyLevel string
+@description('Replication Level for Cosmos DB')
+param dbMaxIntervalInSeconds int
+@description('Staleness Level for Cosmos DB')
+param dbMaxStalenessPrefix int
+@description('Write location enable Cosmos DB')
+param dbEnableMultipleWriteLocations bool
+@description('Redis SKU')
+param redisSku string
+@description('Redis Family')
+param redisFamily string
+@description('Redis Capacity')
+param redisCapacity int
+@description('Service Bus SKU')
+param sBusSku string
+@description('Service Bus Tier')
+param sBusTier string
+
+
 
 @description('Resource tags')
 param tags object = {}
@@ -31,61 +48,6 @@ var deliveryRedisName = 'redis-delivery-${uniqueId}'
 var serviceBusNamespaceName = 'sbns-ingest-${uniqueId}'
 var serviceBusQueueName = 'sb-ingest-${uniqueId}'
 
-// Environment-specific configurations
-var cosmosDbConfig = {
-  dev: {
-    consistencyLevel: 'Session'
-    maxIntervalInSeconds: 300
-    maxStalenessPrefix: 100000
-    enableMultipleWriteLocations: false
-  }
-  hml: {
-    consistencyLevel: 'Session'
-    maxIntervalInSeconds: 300
-    maxStalenessPrefix: 100000
-    enableMultipleWriteLocations: true
-  }
-  prod: {
-    consistencyLevel: 'BoundedStaleness'
-    maxIntervalInSeconds: 86400
-    maxStalenessPrefix: 300000
-    enableMultipleWriteLocations: true
-  }
-}
-
-var redisConfig = {
-  dev: {
-    sku: 'Basic'
-    family: 'C'
-    capacity: 0
-  }
-  hml: {
-    sku: 'Standard'
-    family: 'C'
-    capacity: 1
-  }
-  prod: {
-    sku: 'Premium'
-    family: 'P'
-    capacity: 1
-  }
-}
-
-var serviceBusConfig = {
-  dev: {
-    sku: 'Basic'
-    tier: 'Basic'
-  }
-  hml: {
-    sku: 'Standard'
-    tier: 'Standard'
-  }
-  prod: {
-    sku: 'Premium'
-    tier: 'Premium'
-  }
-}
-
 // ============================================================================
 // COSMOS DB ACCOUNTS
 // ============================================================================
@@ -98,9 +60,9 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   kind: 'GlobalDocumentDB'
   properties: {
     consistencyPolicy: {
-      defaultConsistencyLevel: cosmosDbConfig[environmentName].consistencyLevel
-      maxIntervalInSeconds: cosmosDbConfig[environmentName].maxIntervalInSeconds
-      maxStalenessPrefix: cosmosDbConfig[environmentName].maxStalenessPrefix
+      defaultConsistencyLevel: dbConsistencyLevel
+      maxIntervalInSeconds: dbMaxIntervalInSeconds
+      maxStalenessPrefix: dbMaxStalenessPrefix
     }
     locations: environmentName == 'dev' ? [
       {
@@ -121,7 +83,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
       }
     ]
     databaseAccountOfferType: 'Standard'
-    enableMultipleWriteLocations: cosmosDbConfig[environmentName].enableMultipleWriteLocations
+    enableMultipleWriteLocations: dbEnableMultipleWriteLocations
     isVirtualNetworkFilterEnabled: false
     virtualNetworkRules: []
     disableKeyBasedMetadataWriteAccess: false
@@ -140,9 +102,9 @@ resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   kind: 'MongoDB'
   properties: {
     consistencyPolicy: {
-      defaultConsistencyLevel: cosmosDbConfig[environmentName].consistencyLevel
-      maxIntervalInSeconds: cosmosDbConfig[environmentName].maxIntervalInSeconds
-      maxStalenessPrefix: cosmosDbConfig[environmentName].maxStalenessPrefix
+      defaultConsistencyLevel: dbConsistencyLevel
+      maxIntervalInSeconds: dbMaxIntervalInSeconds
+      maxStalenessPrefix: dbMaxStalenessPrefix
     }
     locations: [
       {
@@ -179,9 +141,9 @@ resource deliveryRedisCache 'Microsoft.Cache/redis@2023-08-01' = {
   tags: union(tags, { 'azd-service-name': 'Delivery-Redis' })
   properties: {
     sku: {
-      name: redisConfig[environmentName].sku
-      family: redisConfig[environmentName].family
-      capacity: redisConfig[environmentName].capacity
+      name: redisSku
+      family: redisFamily
+      capacity: redisCapacity
     }
     enableNonSslPort: false
     minimumTlsVersion: '1.2'
@@ -202,8 +164,8 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
   location: location
   tags: union(tags, { 'azd-service-name': 'Ingestion-ServiceBus' })
   sku: {
-    name: serviceBusConfig[environmentName].sku
-    tier: serviceBusConfig[environmentName].tier
+    name: sBusSku
+    tier: sBusTier
   }
   properties: {
     minimumTlsVersion: '1.2'
@@ -227,7 +189,7 @@ resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-prev
     maxDeliveryCount: 10
     enablePartitioning: false
     enableExpress: false
-  }, serviceBusConfig[environmentName].tier != 'Basic' ? {
+  }, sBusTier != 'Basic' ? {
     autoDeleteOnIdle: 'P10675199DT2H48M5.4775807S'
   } : {})
 }

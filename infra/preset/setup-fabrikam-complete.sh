@@ -125,17 +125,17 @@ echo ""
 
 # Variáveis básicas do projeto
 setup_fabrikam_preset() {
+  # Configurações Gerais do Projeto
   set_variable "environmentName" $ENVIRONMENT_NAME
   set_variable "location" $AZURE_LOCATION
   set_variable "geoRedundancyLocation" $GEO_REDUNDANCY_LOCATION
   set_variable "azureTenantId" $AZURE_TENANT_ID
   set_variable "azureSubscriptionId" $AZURE_SUBSCRIPTION_ID
-  set_variable "appName" $APP_NAME
   set_variable "domainName" $DOMAIN_NAME
+  # Configurações específicas do AKS
   set_variable "kubernetesVersion" $KUBERNETES_VERSION
   set_variable "k8sRbacEntraProfileTenantId" $K8S_RBAC_ENTRA_PROFILE_TENANT_ID
   set_variable "k8sRbacEntraAdminGroupObjectID" $K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID "Grupo de Gerenciamento do AKS"
-  # Configurações específicas do AKS
   set_variable "aksSystemNodeCount" $AKS_SYSTEM_NODE_COUNT "Número de nós do AKS - System"
   set_variable "aksUserNodeCount" $AKS_USER_NODE_COUNT "Número de nós do AKS - User"
   set_variable "aksNodeSize" $AKS_NODE_SIZE "Tamanho dos nós do AKS"
@@ -154,7 +154,31 @@ setup_fabrikam_preset() {
   # Configurações de segurança
   set_variable "enableRbac" $ENABLE_RBAC "RBAC habilitado"
   set_variable "enableNetworkPolicy" $ENABLE_NETWORK_POLICY "Network Policy habilitado"
+  # Configurações ACR
   set_variable "acrSku" $ACR_SKU "SKU do Azure Container Resgistry"
+  # Configurações Tier Data
+  set_variable "dbConsistencyLevel" $DB_CONSISTENCY_LEVEL
+  set_variable "dbMaxIntervalInSeconds" $DB_MAX_INTERVAL_IN_SECONDS
+  set_variable "dbMaxStalenessPrefix" $DB_MAX_STALENESS_PREFIX
+  set_variable "dbEnableMultipleWriteLocations" $DB_ENABLE_MULTIPLE_WRITE_LOCATIONS
+  set_variable "redisSku" $REDIS_SKU
+  set_variable "redisFamily" $REDIS_FAMILY
+  set_variable "redisCapacity" $REDIS_CAPACITY
+  set_variable "sBusSku" $SBUS_SKU
+  set_variable "sBusTier" $SBUS_TIER
+  # Configurações de Network
+  set_variable "hubVnetAddressPrefix" $HUB_VNET_ADDRESS_PREFIX
+  set_variable "spokeVnetAddressPrefix" $SPOKE_VNET_ADDRESS_PREFIX
+  set_variable "gatewaySubnetPrefix" $GATEWAY_SUBNET_PREFIX
+  set_variable "azureFirewallSubnetPrefix" $AZURE_FIREWALL_SUBNET_PREFIX
+  set_variable "bastionSubnetPrefix" $BASTION_SUBNET_PREFIX
+  set_variable "hubNodePoolSubnetPrefix" $HUB_NODE_POOL_SUBNET_PREFIX
+  set_variable "aksSystemSubnetPrefix" $AKS_SYSTEM_SUBNET_PREFIX
+  set_variable "aksUserSubnetPrefix" $AKS_USER_SUBNET_PREFIX
+  set_variable "applicationGatewaySubnetPrefix" $APPLICATION_GATEWAY_SUBNET_PREFIX
+  set_variable "privateEndpointsSubnetPrefix" $PRIVATE_ENDPOINT_SUBNET_PREFIX
+  # Configurações de Observabilidade
+  set_variable "logAnalyticsWorkspaceSku" $LOG_ANALYTICS_WORKSPACE_SKU
   # Configurações Azure já existentes (verificamos se precisam ser atualizadas)
   existing_location=$(azd env get-value "location" 2>/dev/null || echo "")
   if [[ "$existing_location" != $AZURE_LOCATION ]]; then

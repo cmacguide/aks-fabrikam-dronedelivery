@@ -8,13 +8,12 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-
 @description('Environment name')
 param environmentName string
-
 @description('Unique identifier for resource naming')
 param uniqueId string
-
+@description('Log Analitics Workspace SKU')
+param logAnalyticsWorkspaceSku string
 @description('Resource tags')
 param tags object = {}
 
@@ -35,7 +34,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10
   tags: tags
   properties: {
     sku: {
-      name: 'PerGB2018'
+      name: logAnalyticsWorkspaceSku
     }
     retentionInDays: 30
     features: {

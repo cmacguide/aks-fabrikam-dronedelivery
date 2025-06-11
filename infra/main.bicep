@@ -10,58 +10,81 @@ targetScope = 'subscription'
 @description('Environment name (dev, staging, prod)')
 @allowed(['dev', 'staging', 'prod'])
 param environmentName string 
-
 @description('Primary Azure region for deployment')
 param location string
-
 @description('Secondary region for geo-redundant services')
 param geoRedundancyLocation string
-
 @description('Tenant ID for Azure AD integration')
 param k8sRbacEntraProfileTenantId string
-
 @description('Kubernetes version for AKS cluster')
 param kubernetesVersion string 
-
 @description('Node Count for AKS Node System')
 param aksSystemNodeCount int 
-
 @description('Node Count for AKS User Node Pool')
 param aksUserNodeCount int 
-
 @description('VM size for AKS nodes')
 param aksNodeSize string
-
 @description('Enable auto-scaling for AKS node pools')
 param aksEnableAutoScaling bool
-
 @description('Minimum node count for auto-scaling')
 param aksMinCount int
-
 @description('Maximum node count for auto-scaling')
 param aksMaxCount int
-
 @description('AKS service CIDR range')
 param aksServiceCidr string
-
 @description('AKS DNS service IP address')
 param aksDnsServiceIP string
-
 @description('Load balancer SKU for AKS')
 @allowed(['Basic', 'Standard'])
 param aksLoadBalancerSku string
-
 @description('Object ID of the Azure AD group that will have admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
-
 @description('Domain name for the application (e.g., fabrikam.com)')
 param domainName string
-
 @description('Application name prefix for resource naming')
 param appName string
-
 @description('Sku for Azure Container registry')
 param acrSku string
+@description('Consistence Level for Cosmos DB')
+param dbConsistencyLevel string
+@description('Replication Level for Cosmos DB')
+param dbMaxIntervalInSeconds int
+@description('Staleness Level for Cosmos DB')
+param dbMaxStalenessPrefix int
+@description('Write location enable Cosmos DB')
+param dbEnableMultipleWriteLocations bool
+@description('Redis SKU')
+param redisSku string
+@description('Redis Family')
+param redisFamily string
+@description('Redis Capacity')
+param redisCapacity int
+@description('Service Bus SKU')
+param sBusSku string
+@description('Service Bus Tier')
+param sBusTier string
+@description('Hub Vnet Address Prefix')
+param hubVnetAddressPrefix string
+@description('Spoke Vnet Address Prefix')
+param spokeVnetAddressPrefix string
+@description('Gateway Subnet Prefix')
+param gatewaySubnetPrefix string
+@description('Azure Firewall Subnet Prefix')
+param azureFirewallSubnetPrefix string
+@description('Bastion Subnet Prefix')
+param bastionSubnetPrefix string
+@description('Hub Node Pool Subnet Prefix')
+param hubNodePoolSubnetPrefix string
+@description('Aks System Subnet Prefix')
+param aksSystemSubnetPrefix string
+@description('Aks User Subnet Prefix')
+param aksUserSubnetPrefix string
+@description('Application Gateway User Subnet Prefix')
+param applicationGatewaySubnetPrefix string
+@description('Private Endpoint User Subnet Prefix')
+param privateEndpointsSubnetPrefix string
+@description('Log Analitics Workspace SKU')
+param logAnalyticsWorkspaceSku string
 
 @description('Tags to be applied to all resources')
 param tags object = {
@@ -130,8 +153,18 @@ module networking 'modules/networking/main.bicep' = {
   scope: networkingRG
   params: {
     location: location
-    uniqueId: uniqueId
+    uniqueId: uniqueId    
     tags: tags
+    aksSystemSubnetPrefix:aksSystemSubnetPrefix
+    aksUserSubnetPrefix:aksUserSubnetPrefix
+    applicationGatewaySubnetPrefix:applicationGatewaySubnetPrefix
+    azureFirewallSubnetPrefix:azureFirewallSubnetPrefix
+    bastionSubnetPrefix:bastionSubnetPrefix
+    gatewaySubnetPrefix:gatewaySubnetPrefix
+    hubNodePoolSubnetPrefix:hubNodePoolSubnetPrefix
+    hubVnetAddressPrefix:hubVnetAddressPrefix
+    privateEndpointsSubnetPrefix:privateEndpointsSubnetPrefix
+    spokeVnetAddressPrefix:spokeVnetAddressPrefix
   }
 }
 
@@ -179,6 +212,15 @@ module dataServices 'modules/data/main.bicep' = {
     environmentName: environmentName
     uniqueId: uniqueId
     tags: tags
+    dbConsistencyLevel: dbConsistencyLevel
+    dbEnableMultipleWriteLocations:dbEnableMultipleWriteLocations
+    dbMaxIntervalInSeconds:dbMaxIntervalInSeconds
+    dbMaxStalenessPrefix:dbMaxStalenessPrefix
+    redisCapacity:redisCapacity
+    redisFamily:redisFamily
+    redisSku:redisSku
+    sBusSku:sBusSku
+    sBusTier:sBusTier
   }
 }
 
@@ -194,6 +236,7 @@ module observability 'modules/observability/main.bicep' = {
     environmentName: environmentName
     uniqueId: uniqueId
     tags: tags
+    logAnalyticsWorkspaceSku:logAnalyticsWorkspaceSku
   }
 }
 

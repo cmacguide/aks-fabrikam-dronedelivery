@@ -32,8 +32,14 @@
     "aksSystemNodeCount": {
       "value": "2"
     },
+    "aksSystemSubnetPrefix": {
+      "value": "10.240.0.0/23"
+    },
     "aksUserNodeCount": {
       "value": "1"
+    },
+    "aksUserSubnetPrefix": {
+      "value": "10.240.2.0/23"
     },
     "appName": {
       "value": "fabrikam-dronedelivery"
@@ -41,11 +47,32 @@
     "appVersion": {
       "value": "v1.0.0"
     },
+    "applicationGatewaySubnetPrefix": {
+      "value": "10.240.4.0/27"
+    },
+    "azureFirewallSubnetPrefix": {
+      "value": "10.200.0.0/26"
+    },
     "azureSubscriptionId": {
       "value": "e57ee4b-1c01-4752-9866-527cf3136b2d"
     },
     "azureTenantId": {
       "value": "83d6df9e-eec5-4d37-be60-97bf712d85ab"
+    },
+    "bastionSubnetPrefix": {
+      "value": "10.200.0.96/27"
+    },
+    "dbConsistencyLevel": {
+      "value": "Session"
+    },
+    "dbEnableMultipleWriteLocations": {
+      "value": "false"
+    },
+    "dbMaxIntervalInSeconds": {
+      "value": "300"
+    },
+    "dbMaxStalenessPrefix": {
+      "value": "10000"
     },
     "domainName": {
       "value": "fabrikam.com"
@@ -62,8 +89,17 @@
     "environmentName": {
       "value": "dev"
     },
+    "gatewaySubnetPrefix": {
+      "value": "10.200.0.64/27"
+    },
     "geoRedundancyLocation": {
       "value": "centralus"
+    },
+    "hubNodePoolSubnetPrefix": {
+      "value": "10.200.0.128/26"
+    },
+    "hubVnetAddressPrefix": {
+      "value": "10.200.0.0/24"
     },
     "k8sRbacEntraAdminGroupObjectID": {
       "value": "93ae7ed7-8077-4ed4-9947-ca3e991a253f"
@@ -77,8 +113,32 @@
     "location": {
       "value": "eastus2"
     },
+    "logAnalyticsWorkspaceSku": {
+      "value": "PerGB2018"
+    },
     "logLevel": {
       "value": "info"
+    },
+    "privateEndpointsSubnetPrefix": {
+      "value": "10.240.4.32/27"
+    },
+    "redisCapacity": {
+      "value": "0"
+    },
+    "redisFamily": {
+      "value": "C"
+    },
+    "redisSku": {
+      "value": "Basic"
+    },
+    "sBusSku": {
+      "value": "Basic"
+    },
+    "sBusTier": {
+      "value": "Basic"
+    },
+    "spokeVnetAddressPrefix": {
+      "value": "10.240.0.0/16"
     }
   }
 }
