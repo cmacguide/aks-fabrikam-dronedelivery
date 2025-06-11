@@ -60,6 +60,9 @@ param domainName string
 @description('Application name prefix for resource naming')
 param appName string
 
+@description('Sku for Azure Container registry')
+param acrSku string
+
 @description('Tags to be applied to all resources')
 param tags object = {
   Environment: environmentName
@@ -156,6 +159,7 @@ module containerRegistry 'modules/container/acr.bicep' = {
   name: 'container-registry-deployment'
   scope: containerRG
   params: {
+    acrSku: acrSku
     location: location
     uniqueId: uniqueId
     tags: tags

@@ -39,7 +39,7 @@ var cosmosDbConfig = {
     maxStalenessPrefix: 100000
     enableMultipleWriteLocations: false
   }
-  staging: {
+  hml: {
     consistencyLevel: 'Session'
     maxIntervalInSeconds: 300
     maxStalenessPrefix: 100000
@@ -59,7 +59,7 @@ var redisConfig = {
     family: 'C'
     capacity: 0
   }
-  staging: {
+  hml: {
     sku: 'Standard'
     family: 'C'
     capacity: 1
@@ -76,7 +76,7 @@ var serviceBusConfig = {
     sku: 'Basic'
     tier: 'Basic'
   }
-  staging: {
+  hml: {
     sku: 'Standard'
     tier: 'Standard'
   }

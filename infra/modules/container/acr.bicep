@@ -12,6 +12,9 @@ param location string = resourceGroup().location
 @description('Unique identifier for resource naming')
 param uniqueId string
 
+@description('Unique identifier for resource naming')
+param acrSku string
+
 @description('Resource tags')
 param tags object = {}
 
@@ -20,7 +23,7 @@ param tags object = {}
 // ============================================================================
 
 var acrName = 'acrreg${uniqueId}'
-var acrSku = 'Premium' // Using Premium SKU for region compatibility
+// var acrSku = 'Premium' // Using Premium SKU for region compatibility
 
 // ============================================================================
 // CONTAINER REGISTRY

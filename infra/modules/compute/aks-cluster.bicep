@@ -521,57 +521,57 @@ resource resourceLimitsPolicy 'Microsoft.Authorization/policyAssignments@2022-06
 
 // TODO: Re-enable diagnostic settings after Log Analytics Workspace is properly created
 // Diagnostic settings for AKS cluster
-// resource aksClusterDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-//   scope: aksCluster
-//   name: 'default'
-//   properties: {
-//     workspaceId: logAnalyticsWorkspaceId
-//     logs: [
-//       {
-//         category: 'cluster-autoscaler'
-//         enabled: true
-//         retentionPolicy: {
-//           days: 30
-//           enabled: true
-//         }
-//       }
-//       {
-//         category: 'kube-controller-manager'
-//         enabled: true
-//         retentionPolicy: {
-//           days: 30
-//           enabled: true
-//         }
-//       }
-//       {
-//         category: 'kube-audit-admin'
-//         enabled: true
-//         retentionPolicy: {
-//           days: 30
-//           enabled: true
-//         }
-//       }
-//       {
-//         category: 'guard'
-//         enabled: true
-//         retentionPolicy: {
-//           days: 30
-//           enabled: true
-//         }
-//       }
-//     ]
-//     metrics: [
-//       {
-//         category: 'AllMetrics'
-//         enabled: true
-//         retentionPolicy: {
-//           days: 30
-//           enabled: true
-//         }
-//       }
-//     ]
-//   }
-// }
+resource aksClusterDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  scope: aksCluster
+  name: 'default'
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'cluster-autoscaler'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'kube-controller-manager'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'kube-audit-admin'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+      {
+        category: 'guard'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true
+        }
+      }
+    ]
+  }
+}
 
 // Node CPU utilization alert
 resource nodeCpuUtilizationAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {

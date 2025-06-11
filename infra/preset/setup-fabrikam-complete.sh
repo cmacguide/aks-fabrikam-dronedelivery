@@ -134,7 +134,7 @@ setup_fabrikam_preset() {
   set_variable "domainName" $DOMAIN_NAME
   set_variable "kubernetesVersion" $KUBERNETES_VERSION
   set_variable "k8sRbacEntraProfileTenantId" $K8S_RBAC_ENTRA_PROFILE_TENANT_ID
-  set_variable "k8sRbacEntraAdminGroupObjectID" $K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID
+  set_variable "k8sRbacEntraAdminGroupObjectID" $K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID "Grupo de Gerenciamento do AKS"
   # Configurações específicas do AKS
   set_variable "aksSystemNodeCount" $AKS_SYSTEM_NODE_COUNT "Número de nós do AKS - System"
   set_variable "aksUserNodeCount" $AKS_USER_NODE_COUNT "Número de nós do AKS - User"
@@ -154,6 +154,7 @@ setup_fabrikam_preset() {
   # Configurações de segurança
   set_variable "enableRbac" $ENABLE_RBAC "RBAC habilitado"
   set_variable "enableNetworkPolicy" $ENABLE_NETWORK_POLICY "Network Policy habilitado"
+  set_variable "acrSku" $ACR_SKU "SKU do Azure Container Resgistry"
   # Configurações Azure já existentes (verificamos se precisam ser atualizadas)
   existing_location=$(azd env get-value "location" 2>/dev/null || echo "")
   if [[ "$existing_location" != $AZURE_LOCATION ]]; then
@@ -161,14 +162,6 @@ setup_fabrikam_preset() {
   fi
   echo ""
   echo -e "${GREEN}🎉 Configuração completa!${NC}"
-  echo ""
-  echo -e "${CYAN}📋 Resumo das variáveis configuradas:${NC}"
-  azd env get-values | sort
-  echo ""
-  echo -e "${BLUE}🚀 Próximos passos:${NC}"
-  echo "1. Execute: azd up (para fazer deploy completo)"
-  echo "2. Ou execute: azd provision (apenas infraestrutura)"
-  echo "3. Execute: azd deploy (apenas aplicações)"
   echo ""
 }
 make_main_params() {
@@ -235,5 +228,11 @@ case $opcao in
 esac
 
 echo ""
-echo -e "${BLUE}📋 Variáveis após alteração:${NC}"
-azd env get-values
+echo -e "${CYAN}📋 Resumo das variáveis configuradas:${NC}"
+azd env get-values | sort
+echo ""
+echo -e "${BLUE}🚀 Próximos passos:${NC}"
+echo "1. Execute: azd up (para fazer deploy completo)"
+echo "2. Ou execute: azd provision (apenas infraestrutura)"
+echo "3. Execute: azd deploy (apenas aplicações)"
+echo ""

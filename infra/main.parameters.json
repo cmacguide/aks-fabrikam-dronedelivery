@@ -5,6 +5,9 @@
     "AZURE_ENV_NAME": {
       "value": "development"
     },
+    "acrSku": {
+      "value": "PREMIUM"
+    },
     "aksDnsServiceIP": {
       "value": "172.16.0.0/16"
     },
