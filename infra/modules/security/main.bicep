@@ -8,16 +8,15 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-
 @description('Environment name')
 param environmentName string
-
 @description('Unique identifier for resource naming')
 param uniqueId string
-
 @description('Domain name for certificate generation')
 param domainName string
-
+@description('Tenant Id')
+@secure()
+param azureTenantId string
 @description('Resource tags')
 param tags object = {}
 
@@ -53,7 +52,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       family: 'A'
       name: 'standard'
     }
-    tenantId: tenant().tenantId
+    tenantId: azureTenantId
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7

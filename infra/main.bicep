@@ -12,6 +12,8 @@ targetScope = 'subscription'
 param environmentName string 
 @description('Primary Azure region for deployment')
 param location string
+@secure()
+param azureTenantId string
 @description('Secondary region for geo-redundant services')
 param geoRedundancyLocation string
 @description('Tenant ID for Azure AD integration')
@@ -181,6 +183,7 @@ module security 'modules/security/main.bicep' = {
     uniqueId: uniqueId
     domainName: domainName
     tags: tags
+    azureTenantId: azureTenantId
   }
 }
 
