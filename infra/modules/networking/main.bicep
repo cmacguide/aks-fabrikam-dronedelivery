@@ -8,7 +8,6 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-
 @description('Unique identifier for resource naming')
 param uniqueId string
 @description('Hub Vnet Address Prefix')
