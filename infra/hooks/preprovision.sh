@@ -16,201 +16,199 @@ NC='\033[0m' # No Color
 
 # Helper functions
 log_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
+  echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
 log_success() {
-    echo -e "${GREEN}✅ $1${NC}"
+  echo -e "${GREEN}✅ $1${NC}"
 }
 
 log_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+  echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
 log_error() {
-    echo -e "${RED}❌ $1${NC}"
+  echo -e "${RED}❌ $1${NC}"
 }
-
+#carrega um ambiente especifico (dev, hml,prd)
+environmentName=$(azd env get-values | grep "environmentName=" | cut -d '=' -f2 | tr -d '"')
+if [[ -z "$environmentName" ]]; then
+  echo -e "${RED}❌ Variável environmentName não definida no azd!${NC}"
+  exit 1
+fi
+envFile=".azure/$AZURE_ENV_NAME/.env"
+if [[ ! -f "$envFile" ]]; then
+  echo -e "${RED}❌ Arquivo .env não encontrado: $envFile${NC}"
+  exit 1
+else
+  source "$envFile"
+  echo -e "${GREEN}✅ Arquivo .env carregado!${NC}"
+fi
 # Check prerequisites
 check_prerequisites() {
-    log_info "Checking prerequisites..."
-    
-    # Check if Azure CLI is installed
-    if ! command -v az &> /dev/null; then
-        log_error "Azure CLI is not installed. Please install it first."
-        exit 1
-    fi
-    
-    # Check if user is logged in
-    if ! az account show &> /dev/null; then
-        log_error "Not logged into Azure. Please run 'az login' first."
-        exit 1
-    fi
-    
-    # Check if kubectl is installed
-    if ! command -v kubectl &> /dev/null; then
-        log_warning "kubectl is not installed. It will be needed after deployment."
-    fi
-    
-    # Check if helm is installed
-    if ! command -v helm &> /dev/null; then
-        log_warning "Helm is not installed. It will be needed for workload deployment."
-    fi
-    
-    log_success "Prerequisites check completed"
+  log_info "Checking prerequisites..."
+  # Check if Azure CLI is installed
+  if ! command -v az &>/dev/null; then
+    log_error "Azure CLI is not installed. Please install it first."
+    exit 1
+  fi
+  # Check if user is logged in
+  if ! az account show &>/dev/null; then
+    log_error "Not logged into Azure. Please run 'az login' first."
+    exit 1
+  fi
+  # Check if kubectl is installed
+  if ! command -v kubectl &>/dev/null; then
+    log_warning "kubectl is not installed. It will be needed after deployment."
+  fi
+  # Check if helm is installed
+  if ! command -v helm &>/dev/null; then
+    log_warning "Helm is not installed. It will be needed for workload deployment."
+  fi
+  log_success "Prerequisites check completed"
 }
-
 # Validate Azure subscription and permissions
 validate_permissions() {
-    log_info "Validating Azure permissions..."
-    
-    # Get current subscription
-    SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-    TENANT_ID=$(az account show --query tenantId -o tsv)
-    
-    log_info "Current subscription: $SUBSCRIPTION_ID"
-    log_info "Current tenant: $TENANT_ID"
-    
-    # Check if user has required permissions (Contributor + User Access Administrator)
-    # This is a simplified check - in production you might want more thorough validation
-    USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
-    
-    if [ -z "$USER_OBJECT_ID" ]; then
-        log_error "Unable to get current user information"
-        exit 1
-    fi
-    
-    log_success "Permission validation completed"
+  log_info "Validating Azure permissions..."
+  # Get current subscription
+  log_info "Current subscription: $azureSubscriptionId"
+  log_info "Current tenant: $azureTenantId"
+  # Check if user has required permissions (Contributor + User Access Administrator)
+  # This is a simplified check - in production you might want more thorough validation
+  USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+  if [ -z "$USER_OBJECT_ID" ]; then
+    log_error "Unable to get current user information"
+    exit 1
+  fi
+  log_success "Permission validation completed"
 }
-
 # Set required environment variables for azd
-set_environment_variables() {
-    log_info "Setting up environment variables..."
-    
-    # Get or create Azure AD group for AKS admin access
-    if [ -z "$K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID" ]; then
-        GROUP_NAME="dronedelivery-cluster-admin-${AZURE_ENV_NAME:-dev}"
-        log_info "Creating/finding Azure AD group: $GROUP_NAME"
-        
-        # Try to find existing group
-        GROUP_ID=$(az ad group show --group "$GROUP_NAME" --query id -o tsv 2>/dev/null || echo "")
-        
-        if [ -z "$GROUP_ID" ]; then
-            log_info "Creating new Azure AD group: $GROUP_NAME"
-            GROUP_ID=$(az ad group create --display-name "$GROUP_NAME" --mail-nickname "$GROUP_NAME" --query id -o tsv)
-            
-            # Add current user to the group
-            CURRENT_USER_ID=$(az ad signed-in-user show --query id -o tsv)
-            az ad group member add --group "$GROUP_ID" --member-id "$CURRENT_USER_ID"
-            
-            log_success "Created Azure AD group and added current user"
-        else
-            log_success "Using existing Azure AD group"
-        fi
-        
-        # Set environment variable for azd
-        azd env set K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID "$GROUP_ID"
-    fi
-    
-    # Set other required environment variables if not already set
-    if [ -z "$AZURE_LOCATION" ]; then
-        azd env set AZURE_LOCATION "eastus2"
-        log_info "Set default location to eastus2"
-    fi
-    
-    if [ -z "$ENVIRONMENT_NAME" ]; then
-        azd env set ENVIRONMENT_NAME "${AZURE_ENV_NAME:-dev}"
-        log_info "Set environment name to ${AZURE_ENV_NAME:-dev}"
-    fi
-    
-    if [ -z "$DOMAIN_NAME" ]; then
-        azd env set DOMAIN_NAME "fabrikam.com"
-        log_info "Set default domain name to fabrikam.com"
-    fi
-    
-    if [ -z "$KUBERNETES_VERSION" ]; then
-        azd env set KUBERNETES_VERSION "1.30.12"
-        log_info "Set Kubernetes version to 1.30.12"
-    fi
-    
-    log_success "Environment variables configured"
+check_environment_variables() {
+  log_info "Checking up environment variables..."
+
+  # Generated by Copilot - Set AZURE_LOCATION for azd
+  if [ -z "$(azd env get-value AZURE_LOCATION 2>/dev/null)" ]; then
+    azd env set AZURE_LOCATION "$location"
+    log_info "Set AZURE_LOCATION to $location"
+  fi
+
+  # Generated by Copilot - Set AZURE_ENV_NAME for azd
+  if [ -z "$(azd env get-value AZURE_ENV_NAME 2>/dev/null)" ]; then
+    azd env set AZURE_ENV_NAME "$environmentName"
+    log_info "Set AZURE_ENV_NAME to $environmentName"
+  fi
+
+  # Get Azure AD group for AKS admin access
+  if [ -z "$k8sRbacEntraAdminGroupObjectID" ]; then
+    azd env set k8sRbacEntraAdminGroupObjectID "93ae7ed7-8077-4ed4-9947-ca3e991a253f"
+    log_info "Set AD Group for AKS admin Access to 93ae7ed7-8077-4ed4-9947-ca3e991a253f"
+  fi
+
+  # Get Azure AD Tenant Id for AKS admin access
+  if [ -z "$k8sRbacEntraProfileTenantId" ]; then
+    azd env set k8sRbacEntraProfileTenantId "cdbba3b9-3344-40cd-9f2d-5a463efc272d"
+    log_info "Set AD Tenant for AKS admin Access to cdbba3b9-3344-40cd-9f2d-5a463efc272d"
+  fi
+
+  # Set other required environment variables if not already set
+  if [ -z "$location" ]; then
+    azd env set location "eastus2"
+    log_info "Set default location to eastus2"
+  fi
+
+  if [ -z "$environmentName" ]; then
+    azd env set environmentName "dev"
+    log_info "Set environment name to dev"
+  fi
+
+  if [ -z "$domainName" ]; then
+    azd env set domainName "fabrikam.com"
+    log_info "Set default domain name to fabrikam.com"
+  fi
+
+  if [ -z "$kubernetesVersion" ]; then
+    azd env set kubernetesVersion "1.30.12"
+    log_info "Set Kubernetes version to 1.30.12"
+  fi
+
+  log_success "Environment variables configured"
 }
 
 # Validate resource naming
 validate_naming() {
-    log_info "Validating resource naming conventions..."
-    
-    # Check if names will be unique enough
-    SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-    ENV_NAME=${AZURE_ENV_NAME:-dev}
-    LOCATION=${AZURE_LOCATION:-eastus2}
-    
-    UNIQUE_ID=$(echo "$SUBSCRIPTION_ID-$LOCATION-$ENV_NAME" | sha256sum | cut -c1-10)
-    
-    # Test some critical resource names
-    TEST_ACR_NAME="acr${UNIQUE_ID}"
-    TEST_KV_NAME="kv-${UNIQUE_ID}"
-    
-    # Check if ACR name is available (basic format check)
-    if [ ${#TEST_ACR_NAME} -gt 50 ]; then
-        log_error "Generated ACR name '$TEST_ACR_NAME' is too long"
-        exit 1
-    fi
-    
-    # Check if Key Vault name is available (basic format check)
-    if [ ${#TEST_KV_NAME} -gt 24 ]; then
-        log_error "Generated Key Vault name '$TEST_KV_NAME' is too long"
-        exit 1
-    fi
-    
-    log_success "Resource naming validation completed"
+  log_info "Validating resource naming conventions..."
+
+  # Check if names will be unique enough
+  SUBSCRIPTION_ID=$azureSubscriptionId
+  ENV_NAME=$environmentName
+  LOCATION=location
+
+  UNIQUE_ID=$(echo "$SUBSCRIPTION_ID-$LOCATION-$ENV_NAME" | sha256sum | cut -c1-10)
+
+  # Test some critical resource names
+  TEST_ACR_NAME="acr${UNIQUE_ID}"
+  TEST_KV_NAME="kv-${UNIQUE_ID}"
+
+  # Check if ACR name is available (basic format check)
+  if [ ${#TEST_ACR_NAME} -gt 50 ]; then
+    log_error "Generated ACR name '$TEST_ACR_NAME' is too long"
+    exit 1
+  fi
+
+  # Check if Key Vault name is available (basic format check)
+  if [ ${#TEST_KV_NAME} -gt 24 ]; then
+    log_error "Generated Key Vault name '$TEST_KV_NAME' is too long"
+    exit 1
+  fi
+
+  log_success "Resource naming validation completed"
 }
 
 # Enable required Azure resource providers
 enable_resource_providers() {
-    log_info "Enabling required Azure resource providers..."
-    
-    PROVIDERS=(
-        "Microsoft.ContainerService"
-        "Microsoft.ContainerRegistry"
-        "Microsoft.Network"
-        "Microsoft.ManagedIdentity"
-        "Microsoft.KeyVault"
-        "Microsoft.DocumentDB"
-        "Microsoft.Cache"
-        "Microsoft.ServiceBus"
-        "Microsoft.Insights"
-        "Microsoft.OperationalInsights"
-        "Microsoft.Authorization"
-    )
-    
-    for provider in "${PROVIDERS[@]}"; do
-        log_info "Registering provider: $provider"
-        az provider register --namespace "$provider" --wait
-    done
-    
-    log_success "Resource providers enabled"
+  log_info "Enabling required Azure resource providers..."
+
+  PROVIDERS=(
+    "Microsoft.ContainerService"
+    "Microsoft.ContainerRegistry"
+    "Microsoft.Network"
+    "Microsoft.ManagedIdentity"
+    "Microsoft.KeyVault"
+    "Microsoft.DocumentDB"
+    "Microsoft.Cache"
+    "Microsoft.ServiceBus"
+    "Microsoft.Insights"
+    "Microsoft.OperationalInsights"
+    "Microsoft.Authorization"
+  )
+
+  for provider in "${PROVIDERS[@]}"; do
+    log_info "Registering provider: $provider"
+    az provider register --namespace "$provider" --wait
+  done
+
+  log_success "Resource providers enabled"
 }
 
 # Main execution
 main() {
-    echo ""
-    echo "=================================================="
-    echo "  🚀 Fabrikam Drone Delivery Pre-Provisioning"
-    echo "=================================================="
-    echo ""
-    
-    check_prerequisites
-    validate_permissions
-    enable_resource_providers
-    set_environment_variables
-    validate_naming
-    
-    echo ""
-    log_success "Pre-provisioning setup completed successfully!"
-    echo ""
-    log_info "Next step: Run 'azd provision' to deploy infrastructure"
-    echo ""
+  echo ""
+  echo "=================================================="
+  echo "  🚀 Fabrikam Drone Delivery Pre-Provisioning"
+  echo "=================================================="
+  echo ""
+
+  check_prerequisites
+  validate_permissions
+  enable_resource_providers
+  check_environment_variables
+  validate_naming
+
+  echo ""
+  log_success "Pre-provisioning setup completed successfully!"
+  echo ""
+  log_info "Next step: Run 'azd provision' to deploy infrastructure"
+  echo ""
 }
 
 # Run main function
