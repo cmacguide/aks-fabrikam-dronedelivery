@@ -8,8 +8,8 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-@description('Unique identifier for resource naming')
-param uniqueId string
+@description('Resource prefix identifier for resource naming')
+param resourceSufix string
 @description('Hub Vnet Address Prefix')
 param hubVnetAddressPrefix string
 @description('Spoke Vnet Address Prefix')
@@ -37,11 +37,11 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var hubVnetName = 'vnet-hub-${uniqueId}'
-var spokeVnetName = 'vnet-spoke-${uniqueId}'
-var applicationGatewayName = 'agw-${uniqueId}'
-var publicIpName = 'pip-agw-${uniqueId}'
-var firewallName = 'afw-${uniqueId}'
+var hubVnetName = 'vnet-hub-${resourceSufix}'
+var spokeVnetName = 'vnet-spoke-${resourceSufix}'
+var applicationGatewayName = 'agw-${resourceSufix}'
+var publicIpName = 'pip-agw-${resourceSufix}'
+var firewallName = 'afw-${resourceSufix}'
 
 // ============================================================================
 // HUB VIRTUAL NETWORK
@@ -156,7 +156,7 @@ resource spokeVnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
 // ============================================================================
 
 resource hubNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
-  name: 'nsg-hub-${uniqueId}'
+  name: 'nsg-hub-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -179,7 +179,7 @@ resource hubNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
 }
 
 resource aksSystemNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
-  name: 'nsg-akssystem-${uniqueId}'
+  name: 'nsg-akssystem-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -188,7 +188,7 @@ resource aksSystemNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
 }
 
 resource aksUserNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
-  name: 'nsg-aksuser-${uniqueId}'
+  name: 'nsg-aksuser-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -197,7 +197,7 @@ resource aksUserNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
 }
 
 resource applicationGatewayNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
-  name: 'nsg-appgw-${uniqueId}'
+  name: 'nsg-appgw-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -246,7 +246,7 @@ resource applicationGatewayNsg 'Microsoft.Network/networkSecurityGroups@2023-09-
 }
 
 resource privateEndpointsNsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
-  name: 'nsg-pe-${uniqueId}'
+  name: 'nsg-pe-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -278,7 +278,7 @@ resource firewallPublicIp 'Microsoft.Network/publicIPAddresses@2023-09-01' = {
 // ============================================================================
 
 resource aksIpGroup 'Microsoft.Network/ipGroups@2023-09-01' = {
-  name: 'ipg-aks-${uniqueId}'
+  name: 'ipg-aks-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -676,7 +676,7 @@ resource azureFirewall 'Microsoft.Network/azureFirewalls@2023-09-01' = {
 // ============================================================================
 
 resource routeTable 'Microsoft.Network/routeTables@2023-09-01' = {
-  name: 'rt-aks-${uniqueId}'
+  name: 'rt-aks-${resourceSufix}'
   location: location
   tags: tags
   properties: {
@@ -740,7 +740,7 @@ resource applicationGatewayPublicIp 'Microsoft.Network/publicIPAddresses@2023-09
   properties: {
     publicIPAllocationMethod: 'Static'
     dnsSettings: {
-      domainNameLabel: 'agw-${uniqueId}'
+      domainNameLabel: 'agw-${resourceSufix}'
     }
   }
 }
@@ -817,7 +817,11 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2023-09-01' =
         name: 'defaulthttplistener'
         properties: {
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
+            id: resourceId(
+              'Microsoft.Network/applicationGateways/frontendIPConfigurations',
+              applicationGatewayName,
+              'appGwPublicFrontendIp'
+            )
           }
           frontendPort: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_80')
@@ -834,13 +838,25 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2023-09-01' =
           ruleType: 'Basic'
           priority: 100
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, 'defaulthttplistener')
+            id: resourceId(
+              'Microsoft.Network/applicationGateways/httpListeners',
+              applicationGatewayName,
+              'defaulthttplistener'
+            )
           }
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, 'defaultaddresspool')
+            id: resourceId(
+              'Microsoft.Network/applicationGateways/backendAddressPools',
+              applicationGatewayName,
+              'defaultaddresspool'
+            )
           }
           backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, 'defaulthttpsetting')
+            id: resourceId(
+              'Microsoft.Network/applicationGateways/backendHttpSettingsCollection',
+              applicationGatewayName,
+              'defaulthttpsetting'
+            )
           }
         }
       }

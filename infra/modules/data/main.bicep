@@ -10,10 +10,10 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 @description('Secondary location for geo-redundancy')
 param geoRedundancyLocation string
-@description('Environment name')
+@description('Environment name (dev, staging, prod)')
 param environmentName string
-@description('Unique identifier for resource naming')
-param uniqueId string
+@description('Resource prefix identifier for resource naming')
+param resourceSufix string
 @description('Consistence Level for Cosmos DB')
 param dbConsistencyLevel string
 @description('Replication Level for Cosmos DB')
@@ -33,8 +33,6 @@ param sBusSku string
 @description('Service Bus Tier')
 param sBusTier string
 
-
-
 @description('Resource tags')
 param tags object = {}
 
@@ -42,11 +40,11 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var cosmosDbAccountName = 'cosmos-${uniqueId}'
-var packageCosmosDbName = 'cosmon-package-${uniqueId}'
-var deliveryRedisName = 'redis-delivery-${uniqueId}'
-var serviceBusNamespaceName = 'sbns-ingest-${uniqueId}'
-var serviceBusQueueName = 'sb-ingest-${uniqueId}'
+var cosmosDbAccountName = 'cosmos-${resourceSufix}'
+var packageCosmosDbName = 'cosmon-package-${resourceSufix}'
+var deliveryRedisName = 'redis-delivery-${resourceSufix}'
+var serviceBusNamespaceName = 'sbns-ingest-${resourceSufix}'
+var serviceBusQueueName = 'sb-ingest-${resourceSufix}'
 
 // ============================================================================
 // COSMOS DB ACCOUNTS
@@ -64,24 +62,26 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
       maxIntervalInSeconds: dbMaxIntervalInSeconds
       maxStalenessPrefix: dbMaxStalenessPrefix
     }
-    locations: environmentName == 'dev' ? [
-      {
-        locationName: location
-        failoverPriority: 0
-        isZoneRedundant: false
-      }
-    ] : [
-      {
-        locationName: location
-        failoverPriority: 0
-        isZoneRedundant: true
-      }
-      {
-        locationName: geoRedundancyLocation
-        failoverPriority: 1
-        isZoneRedundant: true
-      }
-    ]
+    locations: environmentName == 'dev'
+      ? [
+          {
+            locationName: location
+            failoverPriority: 0
+            isZoneRedundant: false
+          }
+        ]
+      : [
+          {
+            locationName: location
+            failoverPriority: 0
+            isZoneRedundant: true
+          }
+          {
+            locationName: geoRedundancyLocation
+            failoverPriority: 1
+            isZoneRedundant: true
+          }
+        ]
     databaseAccountOfferType: 'Standard'
     enableMultipleWriteLocations: dbEnableMultipleWriteLocations
     isVirtualNetworkFilterEnabled: false
@@ -178,20 +178,25 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   parent: serviceBusNamespace
   name: serviceBusQueueName
-  properties: union({
-    lockDuration: 'PT1M'
-    maxSizeInMegabytes: 1024
-    requiresDuplicateDetection: false
-    requiresSession: false
-    defaultMessageTimeToLive: 'P14D'
-    deadLetteringOnMessageExpiration: true
-    duplicateDetectionHistoryTimeWindow: 'PT10M'
-    maxDeliveryCount: 10
-    enablePartitioning: false
-    enableExpress: false
-  }, sBusTier != 'Basic' ? {
-    autoDeleteOnIdle: 'P10675199DT2H48M5.4775807S'
-  } : {})
+  properties: union(
+    {
+      lockDuration: 'PT1M'
+      maxSizeInMegabytes: 1024
+      requiresDuplicateDetection: false
+      requiresSession: false
+      defaultMessageTimeToLive: 'P14D'
+      deadLetteringOnMessageExpiration: true
+      duplicateDetectionHistoryTimeWindow: 'PT10M'
+      maxDeliveryCount: 10
+      enablePartitioning: false
+      enableExpress: false
+    },
+    sBusTier != 'Basic'
+      ? {
+          autoDeleteOnIdle: 'P10675199DT2H48M5.4775807S'
+        }
+      : {}
+  )
 }
 
 // Service Bus authorization rules

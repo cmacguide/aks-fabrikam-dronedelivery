@@ -8,10 +8,8 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-@description('Environment name')
-param environmentName string
-@description('Unique identifier for resource naming')
-param uniqueId string
+@description('Resource prefix identifier for resource naming')
+param resourceSufix string
 @description('Log Analitics Workspace SKU')
 param logAnalyticsWorkspaceSku string
 @description('Resource tags')
@@ -21,8 +19,8 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var applicationInsightsName = 'ai-${environmentName}-${uniqueId}'
-var logAnalyticsWorkspaceName = 'la-${environmentName}-${uniqueId}'
+var applicationInsightsName = 'ai-${resourceSufix}'
+var logAnalyticsWorkspaceName = 'la-${resourceSufix}'
 
 // ============================================================================
 // LOG ANALYTICS WORKSPACE
@@ -53,7 +51,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: applicationInsightsName
   location: location
   kind: 'web'
-  tags: union(tags, { 
+  tags: union(tags, {
     Service: 'ApplicationInsights'
     Purpose: 'DistributedTracing'
   })

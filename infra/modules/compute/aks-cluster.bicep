@@ -7,74 +7,49 @@
 // ============================================================================
 
 @description('Azure region for resource deployment')
-param location string = resourceGroup().location
-
-@description('Environment name (dev, staging, prod)')
-@allowed(['dev', 'staging', 'prod'])
-param environmentName string
-
-@description('Unique identifier for resource naming')
-param uniqueId string
-
+param location string
+@description('Resource prefix identifier for resource naming')
+param resourceSufix string
 @description('Kubernetes version for the AKS cluster')
-param kubernetesVersion string 
-
+param kubernetesVersion string
 @description('Object ID of the Azure AD group with admin access to AKS')
 param k8sRbacEntraAdminGroupObjectID string
-
 @description('Tenant ID for Azure AD integration')
 param k8sRbacEntraProfileTenantId string
-
 @description('Node Count for AKS Node System')
 param aksSystemNodeCount int
-
 @description('Node Count for AKS Node User')
 param aksUserNodeCount int
-
 @description('Node Size for AKS')
 param aksNodeSize string
-
 @description('Min Node Count for AKS')
 param aksMinCount int
-
 @description('Max Node Count for AKS')
 param aksMaxCount int
-
 @description('Service CIDR AKS')
 param aksServiceCidr string
-
 @description('DNS Service Ip AKS')
 param aksDnsServiceIP string
-
 @description('Load Balancer SKU AKS')
 param aksLoadBalancerSku string
 @description('Load Balancer SKU AKS')
 param aksEnableAutoScaling bool
-
 @description('Resource ID of the Virtual Network where AKS will be deployed')
 param vnetResourceId string
-
 @description('Resource ID of the subnet for AKS node pools')
 param subnetResourceId string
-
 @description('Resource ID of the Azure Container Registry')
 param containerRegistryId string
-
 @description('Resource ID of the Key Vault for secrets')
 param keyVaultId string
-
 @description('Resource ID of the Log Analytics Workspace for monitoring')
 param logAnalyticsWorkspaceId string
-
 @description('IP ranges authorized to contact the Kubernetes API server')
 param clusterAuthorizedIPRanges array = []
-
 @description('URL of the GitOps repository for cluster bootstrapping')
 param gitOpsBootstrappingRepoHttpsUrl string = 'https://github.com/mspnp/aks-fabrikam-dronedelivery.git'
-
 @description('Branch of the GitOps repository')
 param gitOpsBootstrappingRepoBranch string = 'main'
-
 @description('Tags to be applied to all resources')
 param tags object = {}
 
@@ -82,21 +57,33 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var clusterName = 'aks-${environmentName}-${uniqueId}'
+var clusterName = 'aks-${resourceSufix}'
 var nodeResourceGroupName = 'MC_${resourceGroup().name}_${clusterName}_${location}'
-
 // RBAC role definitions
-var keyVaultSecretsUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-var keyVaultCertificateUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
-var monitoringMetricsPublisherRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3913510d-42f4-4e42-8a64-420c390055eb')
-var managedIdentityOperatorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f1a07417-d97a-45cb-824c-7a7467783830')
-var acrPullRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-
+var keyVaultSecretsUserRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
+)
+var keyVaultCertificateUserRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba'
+)
+var monitoringMetricsPublisherRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '3913510d-42f4-4e42-8a64-420c390055eb'
+)
+var managedIdentityOperatorRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'f1a07417-d97a-45cb-824c-7a7467783830'
+)
+var acrPullRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+)
 // Extract VNet resource group and names from resource IDs
 var vnetResourceGroup = split(vnetResourceId, '/')[4]
 // Container registry name extraction
 var containerRegistryName = last(split(containerRegistryId, '/'))
-
 // Log Analytics Workspace name extraction
 var logAnalyticsWorkspaceName = last(split(logAnalyticsWorkspaceId, '/'))
 var containerInsightsSolutionName = 'ContainerInsights(${logAnalyticsWorkspaceName})'
@@ -131,7 +118,6 @@ resource clusterControlPlaneIdentity 'Microsoft.ManagedIdentity/userAssignedIden
   location: location
   tags: tags
 }
-
 // Identity for AKS to access Key Vault
 resource aksToKeyVaultIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: 'mi-${clusterName}-keyvault'
@@ -158,15 +144,14 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
   properties: {
     kubernetesVersion: kubernetesVersion
     dnsPrefix: uniqueString(subscription().subscriptionId, resourceGroup().id, clusterName)
-    
     // Node pools configuration
     agentPoolProfiles: [
       {
         name: 'npsystem'
         count: aksSystemNodeCount
         vmSize: aksNodeSize
-        osDiskSizeGB: 80
-        osDiskType: 'Ephemeral'
+        osDiskSizeGB: 30
+        osDiskType: 'Managed'
         osType: 'Linux'
         minCount: aksMinCount
         maxCount: aksMaxCount
@@ -196,13 +181,12 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         count: aksUserNodeCount
         vmSize: aksNodeSize
         osDiskSizeGB: 80
-        osDiskType: 'Ephemeral'
+        osDiskType: 'Managed'
         osType: 'Linux'
         minCount: aksMinCount
         maxCount: aksMaxCount
         vnetSubnetID: subnetResourceId
-        enableAutoScaling: aksEnableAutoScaling 
-
+        enableAutoScaling: aksEnableAutoScaling
         type: 'VirtualMachineScaleSets'
         mode: 'User'
         scaleSetPriority: 'Regular'
@@ -220,12 +204,10 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         }
       }
     ]
-
     // Service principal configuration
     servicePrincipalProfile: {
       clientId: 'msi'
     }
-
     // Add-ons configuration
     addonProfiles: {
       httpApplicationRouting: {
@@ -254,7 +236,6 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         }
       }
     }
-
     // Security and identity configuration
     oidcIssuerProfile: {
       enabled: true
@@ -267,14 +248,11 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
         enabled: true
       }
     }
-
     // Node resource group
     nodeResourceGroup: nodeResourceGroupName
-
     // RBAC configuration
     enableRBAC: true
     enablePodSecurityPolicy: false
-
     // Network configuration
     networkProfile: {
       networkPlugin: 'azure'
@@ -286,7 +264,6 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       dnsServiceIP: aksDnsServiceIP
       podCidr: null
     }
-
     // Azure AD integration
     aadProfile: {
       managed: true
@@ -295,7 +272,6 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       ]
       tenantID: k8sRbacEntraProfileTenantId
     }
-
     // Auto-scaler configuration
     autoScalerProfile: {
       'scan-interval': '10s'
@@ -314,19 +290,16 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
       'max-total-unready-percentage': '45'
       'ok-total-unready-count': '3'
     }
-
     // API server configuration
     apiServerAccessProfile: {
       authorizedIPRanges: clusterAuthorizedIPRanges
       enablePrivateCluster: false
     }
-
     // Auto-upgrade configuration
     autoUpgradeProfile: {
       upgradeChannel: 'patch'
       nodeOSUpgradeChannel: 'NodeImage'
     }
-
     // Disk encryption
     diskEncryptionSetID: null
   }
@@ -349,7 +322,6 @@ resource aksToKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2
     principalType: 'ServicePrincipal'
   }
 }
-
 resource aksToKeyVaultCertificateUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: resourceGroup()
   name: guid(resourceGroup().id, keyVaultId, keyVaultCertificateUserRole, 'aks-certs')
@@ -359,7 +331,6 @@ resource aksToKeyVaultCertificateUserRole 'Microsoft.Authorization/roleAssignmen
     principalType: 'ServicePrincipal'
   }
 }
-
 // AKS to Container Registry access
 resource aksToAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: resourceGroup()
@@ -370,7 +341,6 @@ resource aksToAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
     principalType: 'ServicePrincipal'
   }
 }
-
 // Monitoring metrics publisher role for kubelet
 resource kubeletMonitoringMetricsPublisherRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: aksCluster
@@ -384,7 +354,6 @@ resource kubeletMonitoringMetricsPublisherRole 'Microsoft.Authorization/roleAssi
     containerInsightsSolution
   ]
 }
-
 // Monitoring metrics publisher role for OMS agent
 resource omsagentMonitoringMetricsPublisherRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: aksCluster
@@ -398,7 +367,6 @@ resource omsagentMonitoringMetricsPublisherRole 'Microsoft.Authorization/roleAss
     containerInsightsSolution
   ]
 }
-
 // Managed Identity Operator role for AKS to Key Vault
 resource aksToKeyVaultManagedIdentityOperatorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: aksToKeyVaultIdentity
@@ -423,7 +391,6 @@ module vnetRbacAssignment 'rbac-vnet.bicep' = {
     vnetResourceId: vnetResourceId
   }
 }
-
 // Node resource group RBAC (deployed after cluster creation)
 module nodeResourceGroupRbac 'rbac-node-rg.bicep' = {
   name: 'node-resource-group-rbac'
@@ -459,7 +426,6 @@ resource podSecurityBaselinePolicy 'Microsoft.Authorization/policyAssignments@20
     }
   }
 }
-
 // Ensure only allowed container images in Kubernetes cluster
 resource allowedContainerImagesPolicy 'Microsoft.Authorization/policyAssignments@2022-06-01' = {
   name: guid('febd0533-8e55-448f-b837-bd0e06f16469', resourceGroup().name, clusterName)
@@ -485,7 +451,6 @@ resource allowedContainerImagesPolicy 'Microsoft.Authorization/policyAssignments
     }
   }
 }
-
 // Container CPU and memory resource limits
 resource resourceLimitsPolicy 'Microsoft.Authorization/policyAssignments@2022-06-01' = {
   name: guid('e345eecc-fa47-480f-9e88-67dcc122b164', resourceGroup().name, clusterName)
@@ -530,49 +495,48 @@ resource aksClusterDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@202
       {
         category: 'cluster-autoscaler'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true
+        // }
       }
       {
         category: 'kube-controller-manager'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true
+        // }
       }
       {
         category: 'kube-audit-admin'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true
+        // }
       }
       {
         category: 'guard'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true
+        // }
       }
     ]
     metrics: [
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true
+        // }
       }
     ]
   }
 }
-
 // Node CPU utilization alert
 resource nodeCpuUtilizationAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   location: 'global'
@@ -611,7 +575,6 @@ resource nodeCpuUtilizationAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = 
   }
   dependsOn: [containerInsightsSolution]
 }
-
 // Pods in failed state alert
 resource podsFailedStateAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   location: 'global'
@@ -679,7 +642,6 @@ resource fluxExtension 'Microsoft.KubernetesConfiguration/extensions@2022-11-01'
     configurationProtectedSettings: {}
   }
 }
-
 // Flux configuration for GitOps bootstrapping
 resource fluxConfiguration 'Microsoft.KubernetesConfiguration/fluxConfigurations@2022-03-01' = {
   scope: aksCluster
@@ -734,6 +696,5 @@ output nodeResourceGroupName string = nodeResourceGroupName
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspaceId
 output aksToKeyVaultIdentityId string = aksToKeyVaultIdentity.id
 output aksToKeyVaultIdentityClientId string = aksToKeyVaultIdentity.properties.clientId
-
 // Configuration information for kubectl access
 output kubectlCommand string = 'az aks get-credentials --name ${aksCluster.name} --resource-group ${resourceGroup().name}'

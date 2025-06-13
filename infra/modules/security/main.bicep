@@ -8,10 +8,8 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-@description('Environment name')
-param environmentName string
-@description('Unique identifier for resource naming')
-param uniqueId string
+@description('Resource prefix identifier for resource naming')
+param resourceSufix string
 @description('Domain name for certificate generation')
 param domainName string
 @description('Tenant Id')
@@ -24,19 +22,25 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var keyVaultName = 'kv-${uniqueId}'
-var keyVaultSecretsUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-var keyVaultCertificateUserRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
+var keyVaultName = 'kv-${resourceSufix}'
+var keyVaultSecretsUserRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
+)
+var keyVaultCertificateUserRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba'
+)
 
 // Managed Identity names for each microservice
 var managedIdentityNames = {
-  delivery: 'uid-delivery-${uniqueId}'
-  ingestion: 'uid-ingestion-${uniqueId}'
-  workflow: 'uid-workflow-${uniqueId}'
-  dronescheduler: 'uid-dronescheduler-${uniqueId}'
-  package: 'uid-package-${uniqueId}'
-  ingressController: 'uid-ingress-${uniqueId}'
-  applicationGateway: 'uid-appgw-${uniqueId}'
+  delivery: 'uid-delivery-${resourceSufix}'
+  ingestion: 'uid-ingestion-${resourceSufix}'
+  workflow: 'uid-workflow-${resourceSufix}'
+  dronescheduler: 'uid-dronescheduler-${resourceSufix}'
+  package: 'uid-package-${resourceSufix}'
+  ingressController: 'uid-ingress-${resourceSufix}'
+  applicationGateway: 'uid-appgw-${resourceSufix}'
 }
 
 // ============================================================================
@@ -56,7 +60,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
-    enablePurgeProtection: true // Enable purge protection for security
+    // enablePurgeProtection: false // Enable purge protection for security
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Allow'
