@@ -12,7 +12,9 @@ infra:
   provider: bicep
   path: infra
   module: main
-
+  parameters:
+    location: "{{ .Env.AZURE_LOCATION }}"
+    environmentName: "{{ .Env.AZURE_ENV_NAME }}"
 # Hooks for custom deployment steps
 hooks:
   preprovision:
