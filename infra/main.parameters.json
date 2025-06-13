@@ -5,17 +5,20 @@
     "AZURE_ENV_NAME": {
       "value": "development"
     },
+    "AZURE_LOCATION": {
+      "value": "eastus2"
+    },
     "acrSku": {
       "value": "PREMIUM"
     },
     "aksDnsServiceIP": {
-      "value": "172.16.0.0/16"
+      "value": "172.16.0.10"
     },
     "aksEnableAutoScaling": {
       "value": "true"
     },
     "aksLoadBalancerSku": {
-      "value": ""
+      "value": "Standard"
     },
     "aksMaxCount": {
       "value": "10"
@@ -42,7 +45,7 @@
       "value": "10.240.2.0/23"
     },
     "appName": {
-      "value": "fabrikam-dronedelivery"
+      "value": "fbk-dd"
     },
     "appVersion": {
       "value": "v1.0.0"
@@ -139,6 +142,9 @@
     },
     "spokeVnetAddressPrefix": {
       "value": "10.240.0.0/16"
+    },
+    "sufix": {
+      "value": "ux4a"
     }
   }
 }

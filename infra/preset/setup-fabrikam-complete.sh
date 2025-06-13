@@ -127,6 +127,7 @@ echo ""
 setup_fabrikam_preset() {
   # Configurações Gerais do Projeto
   set_variable "environmentName" $ENVIRONMENT_NAME
+  set_variable "sufix" $SUFIX
   set_variable "location" $AZURE_LOCATION
   set_variable "geoRedundancyLocation" $GEO_REDUNDANCY_LOCATION
   set_variable "azureTenantId" $AZURE_TENANT_ID
