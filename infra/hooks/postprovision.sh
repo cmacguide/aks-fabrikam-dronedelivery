@@ -16,185 +16,251 @@ NC='\033[0m' # No Color
 
 # Helper functions
 log_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
+  echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
 log_success() {
-    echo -e "${GREEN}✅ $1${NC}"
+  echo -e "${GREEN}✅ $1${NC}"
 }
 
 log_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+  echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
 log_error() {
-    echo -e "${RED}❌ $1${NC}"
+  echo -e "${RED}❌ $1${NC}"
 }
 
 # Get deployment outputs
 get_deployment_outputs() {
-    log_info "Retrieving deployment outputs..."
-    
-    # Get resource group names from environment variables
-    COMPUTE_RG=$(azd env get-values | grep "AZURE_RESOURCE_GROUP" | cut -d'=' -f2 | tr -d '"')
-    CONTAINER_RG=$(echo "$COMPUTE_RG" | sed 's/compute/container/')
-    SECURITY_RG=$(echo "$COMPUTE_RG" | sed 's/compute/security/')
-    
-    if [ -z "$COMPUTE_RG" ]; then
-        log_error "Could not find compute resource group"
-        exit 1
-    fi
-    
-    # Use environment variables directly (more reliable than deployment outputs)
-    AKS_CLUSTER_NAME=$(azd env get-values | grep "aksClusterName" | cut -d'=' -f2 | tr -d '"')
-    ACR_NAME=$(azd env get-values | grep "containerRegistryName" | cut -d'=' -f2 | tr -d '"')
-    KEY_VAULT_NAME=$(azd env get-values | grep "keyVaultName" | cut -d'=' -f2 | tr -d '"')
-    
-    if [ -z "$AKS_CLUSTER_NAME" ] || [ -z "$ACR_NAME" ] || [ -z "$KEY_VAULT_NAME" ]; then
-        log_error "Could not retrieve required values from environment"
-        exit 1
-    fi
-    
-    log_success "Retrieved deployment outputs: AKS=$AKS_CLUSTER_NAME, ACR=$ACR_NAME, KV=$KEY_VAULT_NAME"
+  log_info "Retrieving deployment outputs..."
+
+  # Get resource group names from environment variables
+  COMPUTE_RG=$(azd env get-values | grep "AZURE_RESOURCE_GROUP" | cut -d'=' -f2 | tr -d '"')
+  CONTAINER_RG=$(echo "$COMPUTE_RG" | sed 's/compute/container/')
+  SECURITY_RG=$(echo "$COMPUTE_RG" | sed 's/compute/security/')
+
+  if [ -z "$COMPUTE_RG" ]; then
+    log_error "Could not find compute resource group"
+    exit 1
+  fi
+
+  # Use environment variables directly (more reliable than deployment outputs)
+  AKS_CLUSTER_NAME=$(azd env get-values | grep "aksClusterName" | cut -d'=' -f2 | tr -d '"')
+  ACR_NAME=$(azd env get-values | grep "containerRegistryName" | cut -d'=' -f2 | tr -d '"')
+  KEY_VAULT_NAME=$(azd env get-values | grep "keyVaultName" | cut -d'=' -f2 | tr -d '"')
+
+  if [ -z "$AKS_CLUSTER_NAME" ] || [ -z "$ACR_NAME" ] || [ -z "$KEY_VAULT_NAME" ]; then
+    log_error "Could not retrieve required values from environment"
+    exit 1
+  fi
+
+  log_success "Retrieved deployment outputs: AKS=$AKS_CLUSTER_NAME, ACR=$ACR_NAME, KV=$KEY_VAULT_NAME"
 }
 
 # Configure kubectl access to AKS cluster
 configure_kubectl() {
-    log_info "Configuring kubectl access to AKS cluster..."
-    
-    # Fix kubectl config permissions
-    if [ -f ~/.kube/config ]; then
-        chmod 600 ~/.kube/config
-    fi
-    
-    # Get AKS credentials with admin access (bypasses Azure AD for post-provisioning)
-    log_info "Getting cluster admin credentials..."
-    az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing --admin
-    
-    # Test kubectl connectivity with timeout
-    log_info "Testing kubectl connectivity..."
-    if timeout 30 kubectl get nodes > /dev/null 2>&1; then
-        NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
-        log_success "kubectl configured successfully. Found $NODE_COUNT nodes."
-        
-        # Show cluster info
-        log_info "Cluster nodes:"
-        kubectl get nodes -o wide
+  log_info "Configuring kubectl access to AKS cluster..."
+
+  # Fix kubectl config permissions
+  if [ -f ~/.kube/config ]; then
+    chmod 600 ~/.kube/config
+  fi
+
+  # Get AKS credentials with admin access (bypasses Azure AD for post-provisioning)
+  log_info "Getting cluster admin credentials..."
+  az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing --admin
+
+  # Test kubectl connectivity with timeout
+  log_info "Testing kubectl connectivity..."
+  if timeout 30 kubectl get nodes >/dev/null 2>&1; then
+    NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
+    log_success "kubectl configured successfully. Found $NODE_COUNT nodes."
+
+    # Show cluster info
+    log_info "Cluster nodes:"
+    kubectl get nodes -o wide
+  else
+    log_warning "Admin credentials failed, trying user credentials with Azure AD..."
+
+    # Try with regular user credentials (Azure AD authentication)
+    az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing
+
+    # Test again with user credentials
+    if timeout 30 kubectl get nodes >/dev/null 2>&1; then
+      NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
+      log_success "kubectl configured with user credentials. Found $NODE_COUNT nodes."
     else
-        log_warning "Admin credentials failed, trying user credentials with Azure AD..."
-        
-        # Try with regular user credentials (Azure AD authentication)
-        az aks get-credentials --resource-group "$COMPUTE_RG" --name "$AKS_CLUSTER_NAME" --overwrite-existing
-        
-        # Test again with user credentials
-        if timeout 30 kubectl get nodes > /dev/null 2>&1; then
-            NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
-            log_success "kubectl configured with user credentials. Found $NODE_COUNT nodes."
-        else
-            log_error "Failed to connect to AKS cluster with kubectl"
-            log_info "Please ensure you are logged into the correct Azure AD tenant and have appropriate permissions"
-            log_info "Tenant ID required: $(azd env get-values | grep 'AZURE_TENANT_ID' | cut -d'=' -f2 | tr -d '\"')"
-            log_info "Admin Group ID: $(azd env get-values | grep 'K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID' | cut -d'=' -f2 | tr -d '\"')"
-            
-            # Continue with deployment but mark as warning
-            log_warning "Continuing with deployment despite kubectl connectivity issues"
-            return 0
-        fi
+      log_error "Failed to connect to AKS cluster with kubectl"
+      log_info "Please ensure you are logged into the correct Azure AD tenant and have appropriate permissions"
+      log_info "Tenant ID required: $(azd env get-values | grep 'AZURE_TENANT_ID' | cut -d'=' -f2 | tr -d '\"')"
+      log_info "Admin Group ID: $(azd env get-values | grep 'K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID' | cut -d'=' -f2 | tr -d '\"')"
+
+      # Continue with deployment but mark as warning
+      log_warning "Continuing with deployment despite kubectl connectivity issues"
+      return 0
     fi
+  fi
 }
 
 # Generate and store TLS certificates
 generate_certificates() {
-    log_info "Generating TLS certificates..."
-    
-    DOMAIN_NAME=${DOMAIN_NAME:-"fabrikam.com"}
-    CERT_DIR="/tmp/dronedelivery-certs"
-    mkdir -p "$CERT_DIR"
-    
-    # Generate Application Gateway certificate
-    log_info "Generating Application Gateway certificate for dronedelivery.$DOMAIN_NAME"
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -out "$CERT_DIR/appgw.crt" \
-        -keyout "$CERT_DIR/appgw.key" \
-        -subj "/CN=dronedelivery.$DOMAIN_NAME/O=Fabrikam"
-    
-    # Convert to PFX for Application Gateway
-    openssl pkcs12 -export -out "$CERT_DIR/appgw.pfx" \
-        -inkey "$CERT_DIR/appgw.key" \
-        -in "$CERT_DIR/appgw.crt" \
-        -passout pass:
-    
-    # Generate AKS Ingress Controller certificate (wildcard)
-    log_info "Generating AKS Ingress Controller certificate for *.aks-agic.$DOMAIN_NAME"
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -out "$CERT_DIR/k8sic.crt" \
-        -keyout "$CERT_DIR/k8sic.key" \
-        -subj "/CN=*.aks-agic.$DOMAIN_NAME/O=Fabrikam"
-    
-    # Store certificates in Key Vault
-    log_info "Storing certificates in Key Vault..."
-    
-    # Application Gateway certificate
-    az keyvault certificate import \
-        --vault-name "$KEY_VAULT_NAME" \
-        --name "appgw-ssl-certificate" \
-        --file "$CERT_DIR/appgw.pfx"
-    
-    # AKS Ingress Controller certificate (as secret)
-    az keyvault secret set \
-        --vault-name "$KEY_VAULT_NAME" \
-        --name "k8sic-ssl-certificate" \
-        --file "$CERT_DIR/k8sic.crt"
-    
-    az keyvault secret set \
-        --vault-name "$KEY_VAULT_NAME" \
-        --name "k8sic-ssl-private-key" \
-        --file "$CERT_DIR/k8sic.key"
-    
-    # Cleanup temporary files
-    rm -rf "$CERT_DIR"
-    
-    log_success "Certificates generated and stored in Key Vault"
+  log_info "Generating TLS certificates..."
+
+  DOMAIN_NAME=${DOMAIN_NAME:-"fabrikam.com"}
+  CERT_DIR="/tmp/dronedelivery-certs"
+  mkdir -p "$CERT_DIR"
+
+  # Generated by Copilot - Function to test Key Vault permissions
+  test_keyvault_permissions() {
+    local max_attempts=10
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+      log_info "Testing Key Vault permissions (attempt $attempt/$max_attempts)..."
+
+      # Try to list certificates - this requires read permission
+      if az keyvault certificate list --vault-name "$KEY_VAULT_NAME" --output none 2>/dev/null; then
+        log_success "Key Vault permissions verified"
+        return 0
+      else
+        log_warning "Key Vault permissions not yet available"
+        if [ $attempt -lt $max_attempts ]; then
+          log_info "Waiting 30 seconds for permissions to propagate..."
+          sleep 30
+        fi
+        attempt=$((attempt + 1))
+      fi
+    done
+
+    log_error "Key Vault permissions not available after $max_attempts attempts"
+    return 1
+  }
+
+  # Generated by Copilot - Test permissions before proceeding
+  if ! test_keyvault_permissions; then
+    log_error "Cannot proceed without Key Vault permissions"
+    exit 1
+  fi
+
+  # Generate Application Gateway certificate
+  log_info "Generating Application Gateway certificate for dronedelivery.$DOMAIN_NAME"
+  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -out "$CERT_DIR/appgw.crt" \
+    -keyout "$CERT_DIR/appgw.key" \
+    -subj "/CN=dronedelivery.$DOMAIN_NAME/O=Fabrikam"
+
+  # Convert to PFX for Application Gateway
+  openssl pkcs12 -export -out "$CERT_DIR/appgw.pfx" \
+    -inkey "$CERT_DIR/appgw.key" \
+    -in "$CERT_DIR/appgw.crt" \
+    -passout pass:
+
+  # Generate AKS Ingress Controller certificate (wildcard)
+  log_info "Generating AKS Ingress Controller certificate for *.aks-agic.$DOMAIN_NAME"
+  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -out "$CERT_DIR/k8sic.crt" \
+    -keyout "$CERT_DIR/k8sic.key" \
+    -subj "/CN=*.aks-agic.$DOMAIN_NAME/O=Fabrikam"
+
+  # Store certificates in Key Vault
+  log_info "Storing certificates in Key Vault..."
+
+  # Generated by Copilot - Function to import certificate with retry
+  import_certificate_with_retry() {
+    local vault_name=$1
+    local cert_name=$2
+    local cert_file=$3
+    local max_attempts=3
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+      log_info "Importing certificate $cert_name (attempt $attempt/$max_attempts)..."
+
+      if az keyvault certificate import \
+        --vault-name "$vault_name" \
+        --name "$cert_name" \
+        --file "$cert_file" \
+        --output none 2>/dev/null; then
+        log_success "Certificate $cert_name imported successfully"
+        return 0
+      else
+        log_warning "Certificate import failed"
+        if [ $attempt -lt $max_attempts ]; then
+          log_info "Waiting 15 seconds before retry..."
+          sleep 15
+        fi
+        attempt=$((attempt + 1))
+      fi
+    done
+
+    log_error "Failed to import certificate $cert_name after $max_attempts attempts"
+    return 1
+  }
+
+  # Application Gateway certificate
+  if ! import_certificate_with_retry "$KEY_VAULT_NAME" "appgw-ssl-certificate" "$CERT_DIR/appgw.pfx"; then
+    log_error "Failed to import Application Gateway certificate"
+    exit 1
+  fi
+
+  # AKS Ingress Controller certificate (as secret)
+  az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "k8sic-ssl-certificate" \
+    --file "$CERT_DIR/k8sic.crt" \
+    --output none
+
+  az keyvault secret set \
+    --vault-name "$KEY_VAULT_NAME" \
+    --name "k8sic-ssl-private-key" \
+    --file "$CERT_DIR/k8sic.key" \
+    --output none
+
+  # Cleanup temporary files
+  rm -rf "$CERT_DIR"
+
+  log_success "Certificates generated and stored in Key Vault"
 }
 
 # Install Azure Application Gateway Ingress Controller (AGIC)
 install_agic() {
-    log_info "Installing Azure Application Gateway Ingress Controller..."
-    
-    # Check if kubectl is working first
-    if ! kubectl get nodes > /dev/null 2>&1; then
-        log_warning "kubectl not working, skipping AGIC installation"
-        return 0
-    fi
-    
-    # Add the AGIC Helm repository
-    log_info "Adding AGIC Helm repository..."
-    helm repo add application-gateway-kubernetes-ingress https://appgwingress.blob.core.windows.net/ingress-azure-helm-package/ || {
-        log_warning "Failed to add AGIC Helm repository, skipping AGIC installation"
-        return 0
-    }
-    helm repo update
-    
-    # Get Application Gateway details
-    NETWORKING_RG=$(echo "$COMPUTE_RG" | sed 's/compute/networking/')
-    APP_GATEWAY_NAME=$(az network application-gateway list --resource-group "$NETWORKING_RG" --query "[0].name" -o tsv)
-    APP_GATEWAY_ID=$(az network application-gateway show --resource-group "$NETWORKING_RG" --name "$APP_GATEWAY_NAME" --query "id" -o tsv)
-    
-    # Get managed identity for AGIC from security resource group
-    SECURITY_RG=$(echo "$COMPUTE_RG" | sed 's/compute/security/')
-    AGIC_IDENTITY_NAME=$(az identity list --resource-group "$SECURITY_RG" --query "[?contains(name, 'ingress')].name" -o tsv)
-    AGIC_IDENTITY_CLIENT_ID=$(az identity show --resource-group "$SECURITY_RG" --name "$AGIC_IDENTITY_NAME" --query "clientId" -o tsv)
-    AGIC_IDENTITY_RESOURCE_ID=$(az identity show --resource-group "$SECURITY_RG" --name "$AGIC_IDENTITY_NAME" --query "id" -o tsv)
-    
-    if [ -z "$AGIC_IDENTITY_NAME" ] || [ -z "$AGIC_IDENTITY_CLIENT_ID" ]; then
-        log_warning "Could not find AGIC managed identity, skipping AGIC installation"
-        return 0
-    fi
-    
-    log_info "Using managed identity: $AGIC_IDENTITY_NAME"
-    
-    # Create AGIC configuration
-    cat > /tmp/agic-config.yaml << EOF
+  log_info "Installing Azure Application Gateway Ingress Controller..."
+
+  # Check if kubectl is working first
+  if ! kubectl get nodes >/dev/null 2>&1; then
+    log_warning "kubectl not working, skipping AGIC installation"
+    return 0
+  fi
+
+  # Add the AGIC Helm repository
+  log_info "Adding AGIC Helm repository..."
+  helm repo add application-gateway-kubernetes-ingress https://appgwingress.blob.core.windows.net/ingress-azure-helm-package/ || {
+    log_warning "Failed to add AGIC Helm repository, skipping AGIC installation"
+    return 0
+  }
+  helm repo update
+
+  # Get Application Gateway details
+  NETWORKING_RG=$(echo "$COMPUTE_RG" | sed 's/compute/networking/')
+  APP_GATEWAY_NAME=$(az network application-gateway list --resource-group "$NETWORKING_RG" --query "[0].name" -o tsv)
+  APP_GATEWAY_ID=$(az network application-gateway show --resource-group "$NETWORKING_RG" --name "$APP_GATEWAY_NAME" --query "id" -o tsv)
+
+  # Get managed identity for AGIC from security resource group
+  SECURITY_RG=$(echo "$COMPUTE_RG" | sed 's/compute/security/')
+  AGIC_IDENTITY_NAME=$(az identity list --resource-group "$SECURITY_RG" --query "[?contains(name, 'ingress')].name" -o tsv)
+  AGIC_IDENTITY_CLIENT_ID=$(az identity show --resource-group "$SECURITY_RG" --name "$AGIC_IDENTITY_NAME" --query "clientId" -o tsv)
+  AGIC_IDENTITY_RESOURCE_ID=$(az identity show --resource-group "$SECURITY_RG" --name "$AGIC_IDENTITY_NAME" --query "id" -o tsv)
+
+  if [ -z "$AGIC_IDENTITY_NAME" ] || [ -z "$AGIC_IDENTITY_CLIENT_ID" ]; then
+    log_warning "Could not find AGIC managed identity, skipping AGIC installation"
+    return 0
+  fi
+
+  log_info "Using managed identity: $AGIC_IDENTITY_NAME"
+
+  # Create AGIC configuration
+  cat >/tmp/agic-config.yaml <<EOF
 # AGIC settings
 appgw:
     subscriptionId: $(az account show --query id -o tsv)
@@ -216,62 +282,62 @@ rbac:
     enabled: true
 EOF
 
-    # Install AGIC
-    log_info "Installing AGIC with Helm..."
-    if helm install agic application-gateway-kubernetes-ingress/ingress-azure \
-        --namespace agic-system \
-        --create-namespace \
-        -f /tmp/agic-config.yaml; then
-        
-        log_info "Waiting for AGIC to be ready..."
-        # Wait for AGIC to be ready with timeout
-        if kubectl wait --for=condition=ready pod -l app=ingress-azure -n agic-system --timeout=300s; then
-            log_success "AGIC installed and configured successfully"
-        else
-            log_warning "AGIC installed but may not be fully ready yet"
-        fi
+  # Install AGIC
+  log_info "Installing AGIC with Helm..."
+  if helm install agic application-gateway-kubernetes-ingress/ingress-azure \
+    --namespace agic-system \
+    --create-namespace \
+    -f /tmp/agic-config.yaml; then
+
+    log_info "Waiting for AGIC to be ready..."
+    # Wait for AGIC to be ready with timeout
+    if kubectl wait --for=condition=ready pod -l app=ingress-azure -n agic-system --timeout=300s; then
+      log_success "AGIC installed and configured successfully"
     else
-        log_warning "Failed to install AGIC, continuing with deployment"
+      log_warning "AGIC installed but may not be fully ready yet"
     fi
-    
-    rm -f /tmp/agic-config.yaml
+  else
+    log_warning "Failed to install AGIC, continuing with deployment"
+  fi
+
+  rm -f /tmp/agic-config.yaml
 }
 
 # Configure GitOps with Flux
 configure_gitops() {
-    log_info "Configuring GitOps with Flux..."
-    
-    # Install Flux CLI if not present
-    if ! command -v flux &> /dev/null; then
-        log_info "Installing Flux CLI..."
-        curl -s https://fluxcd.io/install.sh | sudo bash
-    fi
-    
-    # Bootstrap Flux (basic configuration)
-    kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
-    
-    # Wait for Flux to be ready
-    kubectl wait --for=condition=ready pod -l app=source-controller -n flux-system --timeout=300s
-    kubectl wait --for=condition=ready pod -l app=kustomize-controller -n flux-system --timeout=300s
-    
-    # Create namespace for cluster baseline settings
-    kubectl create namespace cluster-baseline-settings --dry-run=client -o yaml | kubectl apply -f -
-    
-    log_success "GitOps with Flux configured"
+  log_info "Configuring GitOps with Flux..."
+
+  # Install Flux CLI if not present
+  if ! command -v flux &>/dev/null; then
+    log_info "Installing Flux CLI..."
+    curl -s https://fluxcd.io/install.sh | sudo bash
+  fi
+
+  # Bootstrap Flux (basic configuration)
+  kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
+
+  # Wait for Flux to be ready
+  kubectl wait --for=condition=ready pod -l app=source-controller -n flux-system --timeout=300s
+  kubectl wait --for=condition=ready pod -l app=kustomize-controller -n flux-system --timeout=300s
+
+  # Create namespace for cluster baseline settings
+  kubectl create namespace cluster-baseline-settings --dry-run=client -o yaml | kubectl apply -f -
+
+  log_success "GitOps with Flux configured"
 }
 
 # Create Kubernetes namespaces and RBAC
 setup_kubernetes_rbac() {
-    log_info "Setting up Kubernetes namespaces and RBAC..."
-    
-    # Create backend-dev namespace
-    kubectl create namespace backend-dev --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Get Azure AD group ID
-    K8S_ADMIN_GROUP_ID=$(azd env get-values | grep "K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID" | cut -d'=' -f2 | tr -d '"')
-    
-    # Create ClusterRoleBinding for Azure AD group
-    cat > /tmp/cluster-admin-binding.yaml << EOF
+  log_info "Setting up Kubernetes namespaces and RBAC..."
+
+  # Create backend-dev namespace
+  kubectl create namespace backend-dev --dry-run=client -o yaml | kubectl apply -f -
+
+  # Get Azure AD group ID
+  K8S_ADMIN_GROUP_ID=$(azd env get-values | grep "K8S_RBAC_ENTRA_ADMIN_GROUP_OBJECT_ID" | cut -d'=' -f2 | tr -d '"')
+
+  # Create ClusterRoleBinding for Azure AD group
+  cat >/tmp/cluster-admin-binding.yaml <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -286,100 +352,243 @@ subjects:
   name: $K8S_ADMIN_GROUP_ID
 EOF
 
-    kubectl apply -f /tmp/cluster-admin-binding.yaml
-    rm -f /tmp/cluster-admin-binding.yaml
-    
-    log_success "Kubernetes RBAC configured"
+  kubectl apply -f /tmp/cluster-admin-binding.yaml
+  rm -f /tmp/cluster-admin-binding.yaml
+
+  log_success "Kubernetes RBAC configured"
 }
 
 # Configure monitoring and observability
 setup_monitoring() {
-    log_info "Setting up monitoring and observability..."
-    
-    # Container Insights should already be enabled via Bicep
-    # Verify it's working
-    if kubectl get ds ama-logs -n kube-system > /dev/null 2>&1; then
-        log_success "Container Insights is enabled"
-    else
-        log_warning "Container Insights not found - may need manual configuration"
+  log_info "Setting up monitoring and observability..."
+
+  # Container Insights should already be enabled via Bicep
+  # Verify it's working
+  if kubectl get ds ama-logs -n kube-system >/dev/null 2>&1; then
+    log_success "Container Insights is enabled"
+  else
+    log_warning "Container Insights not found - may need manual configuration"
+  fi
+
+  # Application Insights connection string should be in Key Vault
+  # This will be used by the workload deployment
+  log_success "Monitoring setup verified"
+}
+
+# Configure AKS identity permissions in Key Vault
+configure_aks_keyvault_permissions() {
+  log_info "Configuring AKS identity permissions in Key Vault..."
+
+  # Get AKS managed identity object ID
+  local aks_identity_object_id=$(az aks show \
+    --resource-group "$COMPUTE_RG" \
+    --name "$AKS_CLUSTER_NAME" \
+    --query identity.principalId \
+    --output tsv)
+
+  if [ -z "$aks_identity_object_id" ]; then
+    log_error "Could not retrieve AKS managed identity object ID"
+    return 1
+  fi
+
+  log_info "AKS Identity Object ID: $aks_identity_object_id"
+
+  # Assign Key Vault Secrets User role to AKS identity
+  log_info "Assigning Key Vault Secrets User role to AKS identity..."
+  az role assignment create \
+    --assignee "$aks_identity_object_id" \
+    --role "Key Vault Secrets User" \
+    --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$SECURITY_RG/providers/Microsoft.KeyVault/vaults/$KEY_VAULT_NAME" \
+    --output none || log_warning "Role assignment may already exist"
+
+  # Assign Key Vault Certificate User role to AKS identity
+  log_info "Assigning Key Vault Certificate User role to AKS identity..."
+  az role assignment create \
+    --assignee "$aks_identity_object_id" \
+    --role "Key Vault Certificate User" \
+    --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$SECURITY_RG/providers/Microsoft.KeyVault/vaults/$KEY_VAULT_NAME" \
+    --output none || log_warning "Role assignment may already exist"
+
+  log_success "AKS Key Vault permissions configured"
+}
+
+# Configure current user permissions in Key Vault
+configure_current_user_keyvault_permissions() {
+  log_info "Configuring current user permissions in Key Vault..."
+
+  # Get current user object ID using multiple methods
+  local current_user_object_id=""
+
+  # Method 1: Try az ad signed-in-user show
+  current_user_object_id=$(az ad signed-in-user show --query id --output tsv 2>/dev/null || echo "")
+
+  # Method 2: Try from azd environment
+  if [ -z "$current_user_object_id" ]; then
+    current_user_object_id=$(azd env get-value currentUserObjectId 2>/dev/null || echo "")
+  fi
+
+  # Method 3: Get current user from account show (for service principals)
+  if [ -z "$current_user_object_id" ]; then
+    log_info "Trying to get service principal object ID..."
+    local app_id=$(az account show --query user.name --output tsv 2>/dev/null || echo "")
+    if [[ "$app_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+      # This looks like an app ID, get the service principal object ID
+      current_user_object_id=$(az ad sp show --id "$app_id" --query id --output tsv 2>/dev/null || echo "")
+      log_info "Found service principal object ID: $current_user_object_id"
     fi
-    
-    # Application Insights connection string should be in Key Vault
-    # This will be used by the workload deployment
-    log_success "Monitoring setup verified"
+  fi
+
+  if [ -z "$current_user_object_id" ]; then
+    log_error "Could not retrieve current user or service principal object ID"
+    log_info "You may need to manually assign Key Vault permissions"
+    return 1
+  fi
+
+  log_info "Current User/Service Principal Object ID: $current_user_object_id"
+
+  # Get Key Vault resource ID
+  local kv_resource_id="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$SECURITY_RG/providers/Microsoft.KeyVault/vaults/$KEY_VAULT_NAME"
+
+  # Assign Key Vault Certificate Officer role to current user/SP
+  log_info "Assigning Key Vault Certificate Officer role..."
+  az role assignment create \
+    --assignee "$current_user_object_id" \
+    --role "Key Vault Certificate Officer" \
+    --scope "$kv_resource_id" \
+    --output none 2>/dev/null || log_warning "Certificate Officer role assignment may already exist"
+
+  # Assign Key Vault Secrets Officer role to current user/SP
+  log_info "Assigning Key Vault Secrets Officer role..."
+  az role assignment create \
+    --assignee "$current_user_object_id" \
+    --role "Key Vault Secrets Officer" \
+    --scope "$kv_resource_id" \
+    --output none 2>/dev/null || log_warning "Secrets Officer role assignment may already exist"
+
+  # Wait for RBAC propagation
+  log_info "Waiting for RBAC role assignments to propagate..."
+  sleep 120 # Increased wait time for better propagation
+
+  log_success "Current user/service principal Key Vault permissions configured"
 }
 
 # Validate deployment
 validate_deployment() {
-    log_info "Validating deployment..."
-    
-    # Check cluster health
-    log_info "Checking cluster nodes..."
-    kubectl get nodes
-    
-    # Check system pods
-    log_info "Checking system pods..."
-    kubectl get pods -n kube-system | grep -E "(Running|Succeeded)" | wc -l
-    
-    # Check AGIC
-    log_info "Checking AGIC..."
-    kubectl get pods -n agic-system
-    
-    # Check Flux
-    log_info "Checking Flux..."
-    kubectl get pods -n flux-system
-    
-    log_success "Deployment validation completed"
+  log_info "Validating deployment..."
+
+  # Check cluster health
+  log_info "Checking cluster nodes..."
+  kubectl get nodes
+
+  # Check system pods
+  log_info "Checking system pods..."
+  kubectl get pods -n kube-system | grep -E "(Running|Succeeded)" | wc -l
+
+  # Check AGIC
+  log_info "Checking AGIC..."
+  kubectl get pods -n agic-system
+
+  # Check Flux
+  log_info "Checking Flux..."
+  kubectl get pods -n flux-system
+
+  log_success "Deployment validation completed"
 }
 
 # Display next steps
 show_next_steps() {
-    echo ""
-    echo "=================================================="
-    echo "  🎉 Post-Provisioning Setup Completed!"
-    echo "=================================================="
-    echo ""
-    echo "📋 Summary:"
-    echo "  ✅ kubectl configured for AKS cluster"
-    echo "  ✅ TLS certificates generated and stored"
-    echo "  ✅ AGIC (Application Gateway Ingress Controller) installed"
-    echo "  ✅ GitOps with Flux configured"
-    echo "  ✅ Kubernetes RBAC configured"
-    echo "  ✅ Monitoring and observability enabled"
-    echo ""
-    echo "🚀 Next Steps:"
-    echo "  1. Deploy workloads: azd deploy"
-    echo "  2. Check cluster status: kubectl get nodes"
-    echo "  3. View Application Gateway: az network application-gateway list"
-    echo "  4. Access Key Vault: az keyvault secret list --vault-name $KEY_VAULT_NAME"
-    echo ""
-    echo "🔧 Useful Commands:"
-    echo "  • Connect to cluster: az aks get-credentials --resource-group $COMPUTE_RG --name $AKS_CLUSTER_NAME"
-    echo "  • View pods: kubectl get pods -A"
-    echo "  • View logs: kubectl logs -f <pod-name> -n <namespace>"
-    echo "  • Port forward: kubectl port-forward -n backend-dev svc/<service> 8080:80"
-    echo ""
+  echo ""
+  echo "=================================================="
+  echo "  🎉 Post-Provisioning Setup Completed!"
+  echo "=================================================="
+  echo ""
+  echo "📋 Summary:"
+  echo "  ✅ kubectl configured for AKS cluster"
+  echo "  ✅ TLS certificates generated and stored"
+  echo "  ✅ AGIC (Application Gateway Ingress Controller) installed"
+  echo "  ✅ GitOps with Flux configured"
+  echo "  ✅ Kubernetes RBAC configured"
+  echo "  ✅ Monitoring and observability enabled"
+  echo ""
+  echo "🚀 Next Steps:"
+  echo "  1. Deploy workloads: azd deploy"
+  echo "  2. Check cluster status: kubectl get nodes"
+  echo "  3. View Application Gateway: az network application-gateway list"
+  echo "  4. Access Key Vault: az keyvault secret list --vault-name $KEY_VAULT_NAME"
+  echo ""
+  echo "🔧 Useful Commands:"
+  echo "  • Connect to cluster: az aks get-credentials --resource-group $COMPUTE_RG --name $AKS_CLUSTER_NAME"
+  echo "  • View pods: kubectl get pods -A"
+  echo "  • View logs: kubectl logs -f <pod-name> -n <namespace>"
+  echo "  • Port forward: kubectl port-forward -n backend-dev svc/<service> 8080:80"
+  echo ""
 }
 
-# Main execution
+# Generated by Copilot - Enhanced main function with better error handling
 main() {
-    echo ""
-    echo "=================================================="
-    echo "  🚀 Fabrikam Drone Delivery Post-Provisioning"
-    echo "=================================================="
-    echo ""
-    
-    get_deployment_outputs
-    configure_kubectl
-    generate_certificates
-    setup_kubernetes_rbac
-    install_agic
-    configure_gitops
-    setup_monitoring
-    validate_deployment
-    show_next_steps
-    
-    log_success "Post-provisioning completed successfully!"
+  echo ""
+  echo "=================================================="
+  echo "  🚀 Fabrikam Drone Delivery Post-Provisioning"
+  echo "=================================================="
+  echo ""
+
+  # Execute each step with error handling
+  log_info "Step 1/10: Getting deployment outputs..."
+  if ! get_deployment_outputs; then
+    log_error "Failed to get deployment outputs"
+    exit 1
+  fi
+
+  log_info "Step 2/10: Configuring kubectl..."
+  if ! configure_kubectl; then
+    log_error "Failed to configure kubectl"
+    exit 1
+  fi
+
+  log_info "Step 3/10: Configuring current user Key Vault permissions..."
+  if ! configure_current_user_keyvault_permissions; then
+    log_warning "Failed to configure user Key Vault permissions, but continuing..."
+  fi
+
+  log_info "Step 4/10: Generating certificates..."
+  if ! generate_certificates; then
+    log_error "Failed to generate certificates"
+    exit 1
+  fi
+
+  log_info "Step 5/10: Setting up Kubernetes RBAC..."
+  if ! setup_kubernetes_rbac; then
+    log_warning "Failed to setup Kubernetes RBAC, but continuing..."
+  fi
+
+  log_info "Step 6/10: Installing AGIC..."
+  if ! install_agic; then
+    log_warning "Failed to install AGIC, but continuing..."
+  fi
+
+  log_info "Step 7/10: Configuring GitOps..."
+  if ! configure_gitops; then
+    log_warning "Failed to configure GitOps, but continuing..."
+  fi
+
+  log_info "Step 8/10: Setting up monitoring..."
+  if ! setup_monitoring; then
+    log_warning "Failed to setup monitoring, but continuing..."
+  fi
+
+  log_info "Step 9/10: Configuring AKS Key Vault permissions..."
+  if ! configure_aks_keyvault_permissions; then
+    log_warning "Failed to configure AKS Key Vault permissions, but continuing..."
+  fi
+
+  log_info "Step 10/10: Validating deployment..."
+  if ! validate_deployment; then
+    log_warning "Failed to validate deployment, but continuing..."
+  fi
+
+  show_next_steps
+
+  log_success "Post-provisioning completed successfully!"
 }
 
 # Run main function
