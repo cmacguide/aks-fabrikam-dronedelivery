@@ -163,6 +163,7 @@ module networking 'modules/networking/main.bicep' = {
   params: {
     location: location
     resourceSufix: resourceSufix
+    environmentName: environmentName
     tags: tags
     aksSystemSubnetPrefix: aksSystemSubnetPrefix
     aksUserSubnetPrefix: aksUserSubnetPrefix
