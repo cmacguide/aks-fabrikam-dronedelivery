@@ -95,6 +95,8 @@ param applicationGatewaySubnetPrefix string
 param privateEndpointsSubnetPrefix string
 @description('Log Analitics Workspace SKU')
 param logAnalyticsWorkspaceSku string
+@description('Firewall Managementy Prefix for Dev env Firewall SKU Basic')
+param azureFirewallManagementSubnetPrefix string
 @description('Tags to be applied to all resources')
 param tags object = {
   Environment: environmentName
@@ -175,6 +177,7 @@ module networking 'modules/networking/main.bicep' = {
     hubVnetAddressPrefix: hubVnetAddressPrefix
     privateEndpointsSubnetPrefix: privateEndpointsSubnetPrefix
     spokeVnetAddressPrefix: spokeVnetAddressPrefix
+    azureFirewallManagementSubnetPrefix: azureFirewallManagementSubnetPrefix
   }
 }
 

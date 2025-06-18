@@ -178,6 +178,7 @@ setup_fabrikam_preset() {
   set_variable "aksUserSubnetPrefix" $AKS_USER_SUBNET_PREFIX
   set_variable "applicationGatewaySubnetPrefix" $APPLICATION_GATEWAY_SUBNET_PREFIX
   set_variable "privateEndpointsSubnetPrefix" $PRIVATE_ENDPOINT_SUBNET_PREFIX
+  set_variable "azureFirewallManagementSubnetPrefix" $AZURE_FIREWALL_MANAGEMENT_SUBNET_PREFIX
   # Configurações de Observabilidade
   set_variable "logAnalyticsWorkspaceSku" $LOG_ANALYTICS_WORKSPACE_SKU
   # Configurações Azure já existentes (verificamos se precisam ser atualizadas)

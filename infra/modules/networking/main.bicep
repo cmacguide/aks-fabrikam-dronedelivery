@@ -34,6 +34,8 @@ param privateEndpointsSubnetPrefix string
 param tags object = {}
 @description('Environment name (dev, staging, prod) - controls Azure Firewall SKU')
 param environmentName string
+@description('Firewall Managementy Prefix for Dev env Firewall SKU Basic')
+param azureFirewallManagementSubnetPrefix string
 
 // ============================================================================
 // VARIABLES
@@ -49,7 +51,6 @@ var firewallName = 'afw-${resourceSufix}'
 var isDevEnvironment = environmentName == 'dev'
 var firewallTier = isDevEnvironment ? 'Basic' : 'Standard'
 var requiresManagementSubnet = isDevEnvironment
-var azureFirewallManagementSubnetPrefix = '10.200.0.192/26' // Only for Basic SKU
 var firewallManagementIpName = 'pip-afw-mgmt-${resourceSufix}'
 
 // ============================================================================
