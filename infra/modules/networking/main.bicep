@@ -12,16 +12,16 @@ param location string = resourceGroup().location
 param resourceSufix string
 @description('Hub Vnet Address Prefix')
 param hubVnetAddressPrefix string
-@description('Spoke Vnet Address Prefix')
-param spokeVnetAddressPrefix string
-@description('Gateway Subnet Prefix')
-param gatewaySubnetPrefix string
 @description('Azure Firewall Subnet Prefix')
 param azureFirewallSubnetPrefix string
+@description('Firewall Managementy Prefix for Dev env Firewall SKU Basic')
+param azureFirewallManagementSubnetPrefix string
+@description('Gateway Subnet Prefix')
+param gatewaySubnetPrefix string
 @description('Bastion Subnet Prefix')
 param bastionSubnetPrefix string
-@description('Hub Node Pool Subnet Prefix')
-param hubNodePoolSubnetPrefix string
+@description('Spoke Vnet Address Prefix')
+param spokeVnetAddressPrefix string
 @description('Aks System Subnet Prefix')
 param aksSystemSubnetPrefix string
 @description('Aks User Subnet Prefix')
@@ -30,12 +30,14 @@ param aksUserSubnetPrefix string
 param applicationGatewaySubnetPrefix string
 @description('Private Endpoint User Subnet Prefix')
 param privateEndpointsSubnetPrefix string
+
+@description('Hub Node Pool Subnet Prefix')
+param hubNodePoolSubnetPrefix string
+
 @description('Resource tags')
 param tags object = {}
 @description('Environment name (dev, staging, prod) - controls Azure Firewall SKU')
 param environmentName string
-@description('Firewall Managementy Prefix for Dev env Firewall SKU Basic')
-param azureFirewallManagementSubnetPrefix string
 
 // ============================================================================
 // VARIABLES
@@ -85,15 +87,6 @@ resource hubVnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
           name: 'AzureBastionSubnet'
           properties: {
             addressPrefix: bastionSubnetPrefix
-          }
-        }
-        {
-          name: 'snet-hubnodes'
-          properties: {
-            addressPrefix: hubNodePoolSubnetPrefix
-            networkSecurityGroup: {
-              id: hubNsg.id
-            }
           }
         }
       ],

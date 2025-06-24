@@ -114,7 +114,8 @@ var resourceSufix = '${appName}-${environmentName}-${sufix}'
 var cleanedResourceSufix = replace(resourceSufix, '-', '')
 
 var resourceGroupNames = {
-  networking: 'rg-networking-${resourceSufix}'
+  hub: 'rg-networking-hub${resourceSufix}'
+  spoke: 'rg-networking-spokes${resourceSufix}'
   compute: 'rg-compute-${resourceSufix}'
   data: 'rg-data-${resourceSufix}'
   security: 'rg-security-${resourceSufix}'
@@ -126,7 +127,7 @@ var resourceGroupNames = {
 // ============================================================================
 
 resource networkingRG 'Microsoft.Resources/resourceGroups@2023-07-01' = {
-  name: resourceGroupNames.networking
+  name: resourceGroupNames.hub
   location: location
   tags: tags
 }
