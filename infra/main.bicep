@@ -110,16 +110,16 @@ param tags object = {
 // VARIABLES
 // ============================================================================
 
-var resourceSufix = '${appName}-${environmentName}-${sufix}'
-var cleanedResourceSufix = replace(resourceSufix, '-', '')
+var resourceSuffix = '${appName}-${environmentName}-${sufix}'
+var cleanedresourceSuffix = replace(resourceSuffix, '-', '')
 
 var resourceGroupNames = {
-  hub: 'rg-networking-hub${resourceSufix}'
-  spoke: 'rg-networking-spokes${resourceSufix}'
-  compute: 'rg-compute-${resourceSufix}'
-  data: 'rg-data-${resourceSufix}'
-  security: 'rg-security-${resourceSufix}'
-  container: 'rg-container-${resourceSufix}'
+  hub: 'rg-networking-hub${resourceSuffix}'
+  spoke: 'rg-networking-spokes${resourceSuffix}'
+  compute: 'rg-compute-${resourceSuffix}'
+  data: 'rg-data-${resourceSuffix}'
+  security: 'rg-security-${resourceSuffix}'
+  container: 'rg-container-${resourceSuffix}'
 }
 
 // ============================================================================
@@ -157,6 +157,21 @@ resource containerRG 'Microsoft.Resources/resourceGroups@2023-07-01' = {
 }
 
 // ============================================================================
+// OBSERVABILITY MODULE (Application Insights)
+// ============================================================================
+
+module observability 'modules/observability/main.bicep' = {
+  name: 'observability-deployment'
+  scope: computeRG
+  params: {
+    location: location
+    resourceSuffix: resourceSuffix
+    tags: tags
+    logAnalyticsWorkspaceSku: logAnalyticsWorkspaceSku
+  }
+}
+
+// ============================================================================
 // NETWORKING MODULE
 // ============================================================================
 
@@ -165,7 +180,7 @@ module networking 'modules/networking/main.bicep' = {
   scope: networkingRG
   params: {
     location: location
-    resourceSufix: resourceSufix
+    resourceSuffix: resourceSuffix
     environmentName: environmentName
     tags: tags
     aksSystemSubnetPrefix: aksSystemSubnetPrefix
@@ -191,7 +206,7 @@ module security 'modules/security/main.bicep' = {
   scope: securityRG
   params: {
     location: location
-    resourceSufix: resourceSufix
+    resourceSuffix: resourceSuffix
     domainName: domainName
     tags: tags
     azureTenantId: azureTenantId
@@ -210,7 +225,7 @@ module containerRegistry 'modules/container/acr.bicep' = {
   params: {
     acrSku: acrSku
     location: location
-    resourceSufix: cleanedResourceSufix
+    resourceSuffix: cleanedresourceSuffix
     tags: tags
   }
 }
@@ -226,7 +241,7 @@ module dataServices 'modules/data/main.bicep' = {
     location: location
     geoRedundancyLocation: geoRedundancyLocation
     environmentName: environmentName
-    resourceSufix: resourceSufix
+    resourceSuffix: resourceSuffix
     tags: tags
     dbConsistencyLevel: dbConsistencyLevel
     dbEnableMultipleWriteLocations: dbEnableMultipleWriteLocations
@@ -241,21 +256,6 @@ module dataServices 'modules/data/main.bicep' = {
 }
 
 // ============================================================================
-// OBSERVABILITY MODULE (Application Insights)
-// ============================================================================
-
-module observability 'modules/observability/main.bicep' = {
-  name: 'observability-deployment'
-  scope: computeRG
-  params: {
-    location: location
-    resourceSufix: resourceSufix
-    tags: tags
-    logAnalyticsWorkspaceSku: logAnalyticsWorkspaceSku
-  }
-}
-
-// ============================================================================
 // AKS CLUSTER MODULE
 // ============================================================================
 
@@ -264,7 +264,7 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
   scope: computeRG
   params: {
     location: location
-    resourceSufix: resourceSufix
+    resourceSuffix: resourceSuffix
     kubernetesVersion: kubernetesVersion
     aksSystemNodeCount: aksSystemNodeCount
     aksUserNodeCount: aksUserNodeCount

@@ -9,7 +9,7 @@ targetScope = 'resourceGroup'
 @description('Primary deployment location')
 param location string = resourceGroup().location
 @description('Resource prefix identifier for resource naming')
-param resourceSufix string
+param resourceSuffix string
 @description('Unique identifier for resource naming')
 param acrSku string
 @description('Resource tags')
@@ -19,7 +19,7 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var acrName = 'acrreg${resourceSufix}'
+var acrName = 'acrreg${resourceSuffix}'
 // var acrSku = 'Premium' // Using Premium SKU for region compatibility
 
 // ============================================================================

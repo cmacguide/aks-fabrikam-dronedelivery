@@ -9,9 +9,19 @@ targetScope = 'resourceGroup'
 @description('Primary deployment location')
 param location string = resourceGroup().location
 @description('Resource prefix identifier for resource naming')
-param resourceSufix string
+param resourceSuffix string
 @description('Log Analitics Workspace SKU')
+@allowed([
+  'PerGB2018'
+  'Free'
+  'Standalone'
+  'CapacityReservation'
+])
 param logAnalyticsWorkspaceSku string
+@description('Retention period (in days) for logs')
+@minValue(30)
+@maxValue(730)
+param retentionInDays int = 30
 @description('Resource tags')
 param tags object = {}
 
@@ -19,8 +29,8 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var applicationInsightsName = 'ai-${resourceSufix}'
-var logAnalyticsWorkspaceName = 'la-${resourceSufix}'
+var workspaceName = 'la-${resourceSuffix}'
+var appInsightsName = 'ai-${resourceSuffix}'
 
 // ============================================================================
 // LOG ANALYTICS WORKSPACE
@@ -61,7 +71,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
     IngestionMode: 'LogAnalytics'
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
-    RetentionInDays: 90
+    RetentionInDays: 30
     DisableIpMasking: false
     DisableLocalAuth: false
   }

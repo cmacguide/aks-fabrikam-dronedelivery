@@ -1,0 +1,156 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "AZURE_ENV_NAME": {
+      "value": "development"
+    },
+    "acrPrivateDnsZonesName": {
+      "value": "privatelink.azurecr.io"
+    },
+    "acrSku": {
+      "value": "PREMIUM"
+    },
+    "aksDnsServiceIP": {
+      "value": "172.16.0.10"
+    },
+    "aksEnableAutoScaling": {
+      "value": "true"
+    },
+    "aksLoadBalancerSku": {
+      "value": "Standard"
+    },
+    "aksMaxCount": {
+      "value": "10"
+    },
+    "aksMinCount": {
+      "value": "1"
+    },
+    "aksNodeSize": {
+      "value": "Standard_D2s_v3"
+    },
+    "aksServiceCidr": {
+      "value": "172.16.0.0/16"
+    },
+    "aksSystemNodeCount": {
+      "value": "2"
+    },
+    "aksUserNodeCount": {
+      "value": "1"
+    },
+    "akvPrivateDnsZonesName": {
+      "value": "privatelink.vaultcore.azure.net"
+    },
+    "appName": {
+      "value": "fbk-dd"
+    },
+    "appVersion": {
+      "value": "v1.0.0"
+    },
+    "applicationGatewaySubnetPrefix": {
+      "value": "10.240.4.16/27"
+    },
+    "azureFirewallManagementSubnetPrefix": {
+      "value": "10.200.0.192/26"
+    },
+    "azureFirewallSubnetPrefix": {
+      "value": "10.200.0.0/26"
+    },
+    "azureGatewaySubnetPrefix": {
+      "value": "10.200.0.64/27"
+    },
+    "azureSubscriptionId": {
+      "value": "e57ee4b-1c01-4752-9866-527cf3136b2d"
+    },
+    "azureTenantId": {
+      "value": "83d6df9e-eec5-4d37-be60-97bf712d85ab"
+    },
+    "bastionSubnetPrefix": {
+      "value": "10.200.0.96/27"
+    },
+    "clusterIngressServicesSubnetPrefix": {
+      "value": "10.240.4.0/28"
+    },
+    "clusterNodesSubnetPrefix": {
+      "value": "10.240.0.0/22"
+    },
+    "dbConsistencyLevel": {
+      "value": "Session"
+    },
+    "dbEnableMultipleWriteLocations": {
+      "value": "false"
+    },
+    "dbMaxIntervalInSeconds": {
+      "value": "300"
+    },
+    "dbMaxStalenessPrefix": {
+      "value": "10000"
+    },
+    "domainName": {
+      "value": "fabrikam.com"
+    },
+    "enableMonitoring": {
+      "value": "true"
+    },
+    "enableNetworkPolicy": {
+      "value": "true"
+    },
+    "enableRbac": {
+      "value": "true"
+    },
+    "environmentName": {
+      "value": "dev"
+    },
+    "geoRedundancyLocation": {
+      "value": "centralus"
+    },
+    "hubNodePoolSubnetPrefix": {
+      "value": "10.200.0.128/26"
+    },
+    "hubVnetAddressPrefix": {
+      "value": "10.200.0.0/24"
+    },
+    "k8sRbacEntraAdminGroupObjectID": {
+      "value": "93ae7ed7-8077-4ed4-9947-ca3e991a253f"
+    },
+    "k8sRbacEntraProfileTenantId": {
+      "value": "cdbba3b9-3344-40cd-9f2d-5a463efc272d"
+    },
+    "kubernetesVersion": {
+      "value": "1.30.12"
+    },
+    "location": {
+      "value": "eastus2"
+    },
+    "logAnalyticsWorkspaceSku": {
+      "value": "PerGB2018"
+    },
+    "logLevel": {
+      "value": "info"
+    },
+    "privateEndpointsSubnetPrefix": {
+      "value": "10.240.4.32/27"
+    },
+    "redisCapacity": {
+      "value": "0"
+    },
+    "redisFamily": {
+      "value": "C"
+    },
+    "redisSku": {
+      "value": "Basic"
+    },
+    "sBusSku": {
+      "value": "Basic"
+    },
+    "sBusTier": {
+      "value": "Basic"
+    },
+    "spokeVnetAddressPrefix": {
+      "value": "10.240.0.0/16"
+    },
+    "sufix": {
+      "value": "ux4a"
+    }
+  }
+}

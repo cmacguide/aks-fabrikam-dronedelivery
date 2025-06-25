@@ -13,7 +13,7 @@ param geoRedundancyLocation string
 @description('Environment name (dev, staging, prod)')
 param environmentName string
 @description('Resource prefix identifier for resource naming')
-param resourceSufix string
+param resourceSuffix string
 @description('Consistence Level for Cosmos DB')
 param dbConsistencyLevel string
 @description('Replication Level for Cosmos DB')
@@ -40,11 +40,11 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var cosmosDbAccountName = 'cosmos-${resourceSufix}'
-var packageCosmosDbName = 'cosmon-package-${resourceSufix}'
-var deliveryRedisName = 'redis-delivery-${resourceSufix}'
-var serviceBusNamespaceName = 'sbns-ingest-${resourceSufix}'
-var serviceBusQueueName = 'sb-ingest-${resourceSufix}'
+var cosmosDbAccountName = 'cosmos-${resourceSuffix}'
+var packageCosmosDbName = 'cosmon-package-${resourceSuffix}'
+var deliveryRedisName = 'redis-delivery-${resourceSuffix}'
+var serviceBusNamespaceName = 'sbns-ingest-${resourceSuffix}'
+var serviceBusQueueName = 'sb-ingest-${resourceSuffix}'
 
 // ============================================================================
 // COSMOS DB ACCOUNTS

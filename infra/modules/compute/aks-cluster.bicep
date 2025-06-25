@@ -9,7 +9,7 @@
 @description('Azure region for resource deployment')
 param location string
 @description('Resource prefix identifier for resource naming')
-param resourceSufix string
+param resourceSuffix string
 @description('Kubernetes version for the AKS cluster')
 param kubernetesVersion string
 @description('Object ID of the Azure AD group with admin access to AKS')
@@ -57,7 +57,7 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var clusterName = 'aks-${resourceSufix}'
+var clusterName = 'aks-${resourceSuffix}'
 var nodeResourceGroupName = 'MC_${resourceGroup().name}_${clusterName}_${location}'
 // RBAC role definitions
 var keyVaultSecretsUserRole = subscriptionResourceId(
