@@ -61,7 +61,7 @@ echo ""
 setup_fabrikam_preset() {
   # Configurações básicas do Azure
   set_variable "environmentName" $ENVIRONMENT_NAME
-  set_variable "sufix" $SUFIX
+  set_variable "suffix" $Suffix
   set_variable "location" $AZURE_LOCATION
   set_variable "azureTenantId" $AZURE_TENANT_ID
   set_variable "azureSubscriptionId" $AZURE_SUBSCRIPTION_ID

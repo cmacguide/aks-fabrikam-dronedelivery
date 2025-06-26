@@ -7,7 +7,7 @@ targetScope = 'resourceGroup'
 // ============================================================================
 
 @description('Primary deployment location')
-param location string = resourceGroup().location
+param location string
 @description('Resource prefix identifier for resource naming')
 param resourceSuffix string
 @description('Domain name for certificate generation')
