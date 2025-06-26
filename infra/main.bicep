@@ -78,7 +78,7 @@ param hubVnetAddressPrefix string
 @description('Spoke Vnet Address Prefix')
 param spokeVnetAddressPrefix string
 @description('Gateway Subnet Prefix')
-param gatewaySubnetPrefix string
+param azureGatewaySubnetPrefix string
 @description('Azure Firewall Subnet Prefix')
 param azureFirewallSubnetPrefix string
 @description('Bastion Subnet Prefix')
@@ -86,9 +86,9 @@ param bastionSubnetPrefix string
 @description('Hub Node Pool Subnet Prefix')
 param hubNodePoolSubnetPrefix string
 @description('Aks System Subnet Prefix')
-param aksSystemSubnetPrefix string
+param clusterNodesSubnetPrefix string
 @description('Aks User Subnet Prefix')
-param aksUserSubnetPrefix string
+param clusterIngressServicesSubnetPrefix string
 @description('Application Gateway User Subnet Prefix')
 param applicationGatewaySubnetPrefix string
 @description('Private Endpoint User Subnet Prefix')
@@ -168,6 +168,7 @@ module observability 'modules/observability/main.bicep' = {
     resourceSuffix: resourceSuffix
     tags: tags
     logAnalyticsWorkspaceSku: logAnalyticsWorkspaceSku
+    retentionInDays: 30
   }
 }
 
@@ -183,17 +184,20 @@ module networking 'modules/networking/main.bicep' = {
     resourceSuffix: resourceSuffix
     environmentName: environmentName
     tags: tags
-    aksSystemSubnetPrefix: aksSystemSubnetPrefix
-    aksUserSubnetPrefix: aksUserSubnetPrefix
+    clusterNodesSubnetPrefix: clusterNodesSubnetPrefix
+    clusterIngressServicesSubnetPrefix: clusterIngressServicesSubnetPrefix
     applicationGatewaySubnetPrefix: applicationGatewaySubnetPrefix
     azureFirewallSubnetPrefix: azureFirewallSubnetPrefix
     bastionSubnetPrefix: bastionSubnetPrefix
-    gatewaySubnetPrefix: gatewaySubnetPrefix
-    hubNodePoolSubnetPrefix: hubNodePoolSubnetPrefix
+    azureGatewaySubnetPrefix: azureGatewaySubnetPrefix
+    // hubNodePoolSubnetPrefix: hubNodePoolSubnetPrefix
     hubVnetAddressPrefix: hubVnetAddressPrefix
     privateEndpointsSubnetPrefix: privateEndpointsSubnetPrefix
     spokeVnetAddressPrefix: spokeVnetAddressPrefix
     azureFirewallManagementSubnetPrefix: azureFirewallManagementSubnetPrefix
+    logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
+    logConfigurations: observability.outputs.logConfigurationsObj
+    metricsConfiguration: observability.outputs.metricsConfigurationArr
   }
 }
 
