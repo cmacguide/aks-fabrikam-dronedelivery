@@ -61,8 +61,9 @@ echo ""
 setup_fabrikam_preset() {
   # Configurações básicas do Azure
   set_variable "environmentName" $ENVIRONMENT_NAME
-  set_variable "suffix" $Suffix
+  set_variable "suffix" $SUFFIX
   set_variable "location" $AZURE_LOCATION
+  set_variable "AZURE_LOCATION" $AZURE_LOCATION
   set_variable "azureTenantId" $AZURE_TENANT_ID
   set_variable "azureSubscriptionId" $AZURE_SUBSCRIPTION_ID
   #Geo Redundance
@@ -116,7 +117,7 @@ setup_fabrikam_preset() {
   set_variable "acrPrivateDnsZonesName" $ACR_PRIVATE_DNS_ZONES_NAME
   set_variable "akvPrivateDnsZonesName" $AKV_PRIVATE_DNS_ZONES_NAME
 
-  set_variable "privateEndpointsSubnetPrefix" $PRIVATE_ENDPOINT_SUBNET_PREFIX
+  # set_variable "privateEndpointsSubnetPrefix" $PRIVATE_ENDPOINT_SUBNET_PREFIX
   set_variable "hubNodePoolSubnetPrefix" $HUB_NODE_POOL_SUBNET_PREFIX
   # Monitoring Tier
   set_variable "logAnalyticsWorkspaceSku" $LOG_ANALYTICS_WORKSPACE_SKU

@@ -28,8 +28,8 @@ param clusterNodesSubnetPrefix string
 param clusterIngressServicesSubnetPrefix string
 @description('Application Gateway User Subnet Prefix')
 param applicationGatewaySubnetPrefix string
-@description('Private Endpoint User Subnet Prefix')
-param privateEndpointsSubnetPrefix string
+// @description('Private Endpoint User Subnet Prefix')
+// param privateEndpointsSubnetPrefix string
 @description('Log Analitics Workspace Id')
 param logAnalyticsWorkspaceId string
 @description('Log Analitics Resource log configuration')
@@ -156,17 +156,17 @@ resource spokeVnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
           privateLinkServiceNetworkPolicies: 'Disabled'
         }
       }
-      {
-        name: 'snet-privateendpoints'
-        properties: {
-          addressPrefix: privateEndpointsSubnetPrefix
-          networkSecurityGroup: {
-            id: privateEndpointsNsg.id
-          }
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Enabled'
-        }
-      }
+      // {
+      //   name: 'snet-privateendpoints'
+      //   properties: {
+      //     addressPrefix: privateEndpointsSubnetPrefix
+      //     networkSecurityGroup: {
+      //       id: privateEndpointsNsg.id
+      //     }
+      //     privateEndpointNetworkPolicies: 'Disabled'
+      //     privateLinkServiceNetworkPolicies: 'Enabled'
+      //   }
+      // }
     ]
   }
 }
@@ -945,7 +945,7 @@ resource appGatewayDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021
   }
 }
 resource hubVnetDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diagSettings-nsg-hub'
+  name: 'diagSettings-vnet-hub'
   scope: hubVnet
   properties: {
     workspaceId: logAnalyticsWorkspaceId
@@ -953,8 +953,17 @@ resource hubVnetDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05
     metrics: metricsConfiguration
   }
 }
+resource SpokeVnetDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'diagSettings-vnet-spoke'
+  scope: spokeVnet
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: logConfigurations.generic
+    metrics: metricsConfiguration
+  }
+}
 // ============================================================================
-// OUTPUTS
+// OUTPUTS  
 // ============================================================================
 output hubVnetId string = hubVnet.id
 output spokeVnetId string = spokeVnet.id

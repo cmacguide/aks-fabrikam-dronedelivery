@@ -30,7 +30,7 @@ param tags object = {}
 // VARIABLES
 // ============================================================================
 
-var workspaceName = 'la-${resourceSuffix}+""'
+var workspaceName = 'la-${resourceSuffix}-01'
 var appInsightsName = 'ai-${resourceSuffix}'
 
 // ============================================================================

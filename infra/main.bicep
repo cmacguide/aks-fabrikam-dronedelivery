@@ -6,6 +6,7 @@ targetScope = 'subscription'
 
 // Add location metadata for subscription-scoped deployment
 metadata description = 'Fabrikam Drone Delivery AKS Infrastructure'
+metadata location = 'eastus2' // Default location for subscription-scoped deployment
 
 // ============================================================================
 // PARAMETERS
@@ -82,16 +83,14 @@ param azureGatewaySubnetPrefix string
 param azureFirewallSubnetPrefix string
 @description('Bastion Subnet Prefix')
 param bastionSubnetPrefix string
-@description('Hub Node Pool Subnet Prefix')
-param hubNodePoolSubnetPrefix string
 @description('Aks System Subnet Prefix')
 param clusterNodesSubnetPrefix string
 @description('Aks User Subnet Prefix')
 param clusterIngressServicesSubnetPrefix string
 @description('Application Gateway User Subnet Prefix')
 param applicationGatewaySubnetPrefix string
-@description('Private Endpoint User Subnet Prefix')
-param privateEndpointsSubnetPrefix string
+// @description('Private Endpoint User Subnet Prefix')
+// param privateEndpointsSubnetPrefix string
 @description('Log Analitics Workspace SKU')
 param logAnalyticsWorkspaceSku string
 @description('Firewall Managementy Prefix for Dev env Firewall SKU Basic')
@@ -113,8 +112,7 @@ var resourceSuffix = '${appName}-${environmentName}-${suffix}'
 var cleanedresourceSuffix = replace(resourceSuffix, '-', '')
 
 var resourceGroupNames = {
-  hub: 'rg-networking-hub${resourceSuffix}'
-  spoke: 'rg-networking-spokes${resourceSuffix}'
+  networing: 'rg-networking-${resourceSuffix}'
   compute: 'rg-compute-${resourceSuffix}'
   data: 'rg-data-${resourceSuffix}'
   security: 'rg-security-${resourceSuffix}'
@@ -126,7 +124,7 @@ var resourceGroupNames = {
 // ============================================================================
 
 resource networkingRG 'Microsoft.Resources/resourceGroups@2023-07-01' = {
-  name: resourceGroupNames.hub
+  name: resourceGroupNames.networing
   location: location
   tags: tags
 }
@@ -191,7 +189,7 @@ module networking 'modules/networking/main.bicep' = {
     azureGatewaySubnetPrefix: azureGatewaySubnetPrefix
     // hubNodePoolSubnetPrefix: hubNodePoolSubnetPrefix
     hubVnetAddressPrefix: hubVnetAddressPrefix
-    privateEndpointsSubnetPrefix: privateEndpointsSubnetPrefix
+    // privateEndpointsSubnetPrefix: privateEndpointsSubnetPrefix
     spokeVnetAddressPrefix: spokeVnetAddressPrefix
     azureFirewallManagementSubnetPrefix: azureFirewallManagementSubnetPrefix
     logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
