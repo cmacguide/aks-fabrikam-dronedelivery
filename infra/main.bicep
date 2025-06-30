@@ -202,7 +202,7 @@ module security 'modules/security/main.bicep' = {
     tags: tags
     azureTenantId: azureTenantId
     currentUserObjectId: currentUserObjectId
-    akvPrivateDnsZones: networking.outputs.akvPrivateDnsZones
+    akvPrivateDnsZone: networking.outputs.akvPrivateDnsZone
     vnetNodePoolSubnetResourceId: networking.outputs.vnetNodePoolSubnetResourceId
   }
 }
@@ -217,7 +217,7 @@ module containerRegistry 'modules/container/acr.bicep' = {
     location: location
     resourceSuffix: cleanedresourceSuffix
     tags: tags
-    acrPrivateDnsZones: networking.outputs.acrPrivateDnsZones
+    acrPrivateDnsZone: networking.outputs.acrPrivateDnsZone
     vnetNodePoolSubnetResourceId: networking.outputs.vnetNodePoolSubnetResourceId
   }
 }

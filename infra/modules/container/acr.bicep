@@ -15,7 +15,7 @@ param acrSku string
 @description('Spoke Node Pool Subnet Prefix')
 param vnetNodePoolSubnetResourceId string
 @description('Private Dns Zone para AKV')
-param acrPrivateDnsZones string
+param acrPrivateDnsZone string
 @description('Resource tags')
 param tags object = {}
 
@@ -96,7 +96,7 @@ resource nodepoolToAkvPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoint
       {
         name: 'privatelink-akv-net'
         properties: {
-          privateDnsZoneId: acrPrivateDnsZones
+          privateDnsZoneId: acrPrivateDnsZone
         }
       }
     ]

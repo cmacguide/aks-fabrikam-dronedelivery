@@ -945,19 +945,29 @@ resource SpokeVnetDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-
 // ============================================================================
 // PRIVATE LINK ENDPOINT
 // ============================================================================
-
-resource acrPrivateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: acrPrivateDnsZonesName
   location: 'global'
   properties: {}
 }
-resource akvPrivateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource akvPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: akvPrivateDnsZonesName
   location: 'global'
   properties: {}
 }
-resource acrPrivateDnsZonesName_Microsoft_Network_virtualNetworks_spokeVNet 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: acrPrivateDnsZones
+resource acrPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: acrPrivateDnsZone
+  name: '${acrPrivateDnsZone.name}-link'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: spokeVnet.id
+    }
+    registrationEnabled: false
+  }
+}
+resource akvPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: akvPrivateDnsZone
   name: uniqueString(spokeVnet.id)
   location: 'global'
   properties: {
@@ -967,18 +977,6 @@ resource acrPrivateDnsZonesName_Microsoft_Network_virtualNetworks_spokeVNet 'Mic
     registrationEnabled: false
   }
 }
-resource akvPrivateDnsZonesName_Microsoft_Network_virtualNetworks_spokeVNet 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: akvPrivateDnsZones
-  name: uniqueString(spokeVnet.id)
-  location: 'global'
-  properties: {
-    virtualNetwork: {
-      id: spokeVnet.id
-    }
-    registrationEnabled: false
-  }
-}
-
 // ============================================================================
 // OUTPUTS  
 // ============================================================================
@@ -994,5 +992,5 @@ output applicationGatewayFqdn string = applicationGatewayPublicIp.properties.dns
 output applicationGatewayPublicIpAddress string = applicationGatewayPublicIp.properties.ipAddress
 output azureFirewallId string = azureFirewall.id
 output azureFirewallPrivateIp string = azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
-output akvPrivateDnsZones string = akvPrivateDnsZones.id
-output acrPrivateDnsZones string = acrPrivateDnsZones.id
+output akvPrivateDnsZone string = akvPrivateDnsZone.id
+output acrPrivateDnsZone string = acrPrivateDnsZone.id

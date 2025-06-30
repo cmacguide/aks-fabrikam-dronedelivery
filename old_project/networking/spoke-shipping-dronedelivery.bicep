@@ -24,7 +24,11 @@ resource routeTable 'Microsoft.Network/routeTables@2023-04-01' = {
         properties: {
           nextHopType: 'VirtualAppliance'
           addressPrefix: '0.0.0.0/0'
-          nextHopIpAddress: reference(resourceId(hubRgName, 'Microsoft.Network/azureFirewalls', 'fw-${location}-hub'), '2023-04-01', 'Full').properties.ipConfigurations[0].properties.privateIpAddress
+          nextHopIpAddress: reference(
+            resourceId(hubRgName, 'Microsoft.Network/azureFirewalls', 'fw-${location}-hub'),
+            '2023-04-01',
+            'Full'
+          ).properties.ipConfigurations[0].properties.privateIpAddress
         }
       }
     ]
@@ -89,7 +93,11 @@ resource clusterVNetMicrosoftInsightsToHub 'Microsoft.Insights/diagnosticSetting
   scope: clusterVNet
   name: 'toHub'
   properties: {
-    workspaceId: resourceId(hubRgName, 'Microsoft.OperationalInsights/workspaces', 'la-networking-hub-${reference(hubVnetResourceId, '2023-04-01', 'Full').location}-${uniqueString(hubVnetResourceId)}')
+    workspaceId: resourceId(
+      hubRgName,
+      'Microsoft.OperationalInsights/workspaces',
+      'la-networking-hub-${reference(hubVnetResourceId, '2023-04-01', 'Full').location}-${uniqueString(hubVnetResourceId)}'
+    )
     metrics: [
       {
         category: 'AllMetrics'
@@ -109,20 +117,20 @@ module CreateHubToSpokePeer './nested_spoke-shipping-dronedelivery.bicep' = {
   }
 }
 
-resource acrPrivateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: acrPrivateDnsZonesName
   location: 'global'
   properties: {}
 }
 
-resource akvPrivateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource akvPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: akvPrivateDnsZonesName
   location: 'global'
   properties: {}
 }
 
 resource acrPrivateDnsZonesName_Microsoft_Network_virtualNetworks_clusterVNet 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: acrPrivateDnsZones
+  parent: acrPrivateDnsZone
   name: uniqueString(clusterVNet.id)
   location: 'global'
   properties: {
@@ -134,7 +142,7 @@ resource acrPrivateDnsZonesName_Microsoft_Network_virtualNetworks_clusterVNet 'M
 }
 
 resource akvPrivateDnsZonesName_Microsoft_Network_virtualNetworks_clusterVNet 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: akvPrivateDnsZones
+  parent: akvPrivateDnsZone
   name: uniqueString(clusterVNet.id)
   location: 'global'
   properties: {

@@ -26,7 +26,7 @@ param aksClusterIdentityObjectId string = ''
 @description('Spoke Node Pool Subnet Prefix')
 param vnetNodePoolSubnetResourceId string
 @description('Private Dns Zone para AKV')
-param akvPrivateDnsZones string
+param akvPrivateDnsZone string
 // ============================================================================
 // VARIABLES
 // ============================================================================
@@ -349,7 +349,7 @@ resource nodepoolToAkvPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoint
       {
         name: 'privatelink-akv-net'
         properties: {
-          privateDnsZoneId: akvPrivateDnsZones
+          privateDnsZoneId: akvPrivateDnsZone
         }
       }
     ]
