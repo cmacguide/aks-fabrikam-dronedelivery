@@ -12,6 +12,10 @@ param location string = resourceGroup().location
 param resourceSuffix string
 @description('Unique identifier for resource naming')
 param acrSku string
+@description('Spoke Node Pool Subnet Prefix')
+param vnetNodePoolSubnetResourceId string
+@description('Private Dns Zone para AKV')
+param acrPrivateDnsZones string
 @description('Resource tags')
 param tags object = {}
 
@@ -61,7 +65,43 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
     // Zone redundancy only supported for Premium SKU
   }
 }
-
+// ============================================================================
+// PRIVATE LINK ENDPOINT
+// ============================================================================
+resource nodepoolToAkvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
+  name: 'nodepool-to-acr'
+  location: location
+  properties: {
+    subnet: {
+      id: vnetNodePoolSubnetResourceId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'nodepoolsubnet-to-registry'
+        properties: {
+          privateLinkServiceId: containerRegistry.id
+          groupIds: [
+            'vault'
+          ]
+        }
+      }
+    ]
+  }
+}
+resource nodepoolToAkvPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
+  parent: nodepoolToAkvPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-akv-net'
+        properties: {
+          privateDnsZoneId: acrPrivateDnsZones
+        }
+      }
+    ]
+  }
+}
 // ============================================================================
 // OUTPUTS
 // ============================================================================

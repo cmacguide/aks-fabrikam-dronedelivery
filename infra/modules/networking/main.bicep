@@ -995,3 +995,4 @@ output applicationGatewayPublicIpAddress string = applicationGatewayPublicIp.pro
 output azureFirewallId string = azureFirewall.id
 output azureFirewallPrivateIp string = azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
 output akvPrivateDnsZones string = akvPrivateDnsZones.id
+output acrPrivateDnsZones string = acrPrivateDnsZones.id

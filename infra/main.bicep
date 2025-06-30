@@ -217,6 +217,8 @@ module containerRegistry 'modules/container/acr.bicep' = {
     location: location
     resourceSuffix: cleanedresourceSuffix
     tags: tags
+    acrPrivateDnsZones: networking.outputs.acrPrivateDnsZones
+    vnetNodePoolSubnetResourceId: networking.outputs.vnetNodePoolSubnetResourceId
   }
 }
 // ============================================================================
