@@ -94,7 +94,7 @@ resource nodepoolToAcrPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoint
   properties: {
     privateDnsZoneConfigs: [
       {
-        name: 'privatelink-akv-net'
+        name: 'privatelink-acr-net'
         properties: {
           privateDnsZoneId: acrPrivateDnsZone
         }
