@@ -81,14 +81,14 @@ resource nodepoolToAkvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-0
         properties: {
           privateLinkServiceId: containerRegistry.id
           groupIds: [
-            'vault'
+            'registry'
           ]
         }
       }
     ]
   }
 }
-resource nodepoolToAkvPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
+resource nodepoolToAcrPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
   parent: nodepoolToAkvPrivateEndpoint
   name: 'default'
   properties: {
