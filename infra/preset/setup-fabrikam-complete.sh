@@ -116,8 +116,7 @@ setup_fabrikam_preset() {
   set_variable "applicationGatewaySubnetPrefix" $APPLICATION_GATEWAY_SUBNET_PREFIX
   set_variable "acrPrivateDnsZonesName" $ACR_PRIVATE_DNS_ZONES_NAME
   set_variable "akvPrivateDnsZonesName" $AKV_PRIVATE_DNS_ZONES_NAME
-
-  # set_variable "privateEndpointsSubnetPrefix" $PRIVATE_ENDPOINT_SUBNET_PREFIX
+  set_variable "privateEndpointsSubnetPrefix" $PRIVATE_ENDPOINT_SUBNET_PREFIX
   set_variable "hubNodePoolSubnetPrefix" $HUB_NODE_POOL_SUBNET_PREFIX
   # Monitoring Tier
   set_variable "logAnalyticsWorkspaceSku" $LOG_ANALYTICS_WORKSPACE_SKU

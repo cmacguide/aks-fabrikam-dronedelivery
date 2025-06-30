@@ -17,15 +17,16 @@ param domainName string
 param azureTenantId string
 @description('Resource tags')
 param tags object = {}
-
 // Object ID of the current user or service principal for Key Vault access
 @description('Object ID of the current user or service principal for Key Vault access')
 param currentUserObjectId string = ''
-
 // Object ID of the AKS cluster managed identity
 @description('Object ID of the AKS cluster managed identity')
 param aksClusterIdentityObjectId string = ''
-
+@description('Spoke Node Pool Subnet Prefix')
+param vnetNodePoolSubnetResourceId string
+@description('Private Dns Zone para AKV')
+param akvPrivateDnsZones string
 // ============================================================================
 // VARIABLES
 // ============================================================================
@@ -67,7 +68,6 @@ var managedIdentityNames = {
 // ============================================================================
 // KEY VAULT
 // ============================================================================
-
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
@@ -98,53 +98,44 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 // ============================================================================
 // MANAGED IDENTITIES
 // ============================================================================
-
 resource deliveryManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.delivery
   location: location
   tags: union(tags, { Service: 'delivery' })
 }
-
 resource ingestionManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.ingestion
   location: location
   tags: union(tags, { Service: 'ingestion' })
 }
-
 resource workflowManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.workflow
   location: location
   tags: union(tags, { Service: 'workflow' })
 }
-
 resource droneschedulerManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.dronescheduler
   location: location
   tags: union(tags, { Service: 'dronescheduler' })
 }
-
 resource packageManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.package
   location: location
   tags: union(tags, { Service: 'package' })
 }
-
 resource ingressControllerManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.ingressController
   location: location
   tags: union(tags, { Service: 'ingress-controller' })
 }
-
 resource applicationGatewayManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: managedIdentityNames.applicationGateway
   location: location
   tags: union(tags, { Service: 'application-gateway' })
 }
-
 // ============================================================================
 // KEY VAULT RBAC ASSIGNMENTS
 // ============================================================================
-
 // Delivery service access to Key Vault secrets
 resource deliveryKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -155,7 +146,6 @@ resource deliveryKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignment
     principalType: 'ServicePrincipal'
   }
 }
-
 // Ingestion service access to Key Vault secrets
 resource ingestionKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -166,7 +156,6 @@ resource ingestionKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignmen
     principalType: 'ServicePrincipal'
   }
 }
-
 // Workflow service access to Key Vault secrets
 resource workflowKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -177,7 +166,6 @@ resource workflowKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignment
     principalType: 'ServicePrincipal'
   }
 }
-
 // DroneScheduler service access to Key Vault secrets
 resource droneschedulerKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -188,7 +176,6 @@ resource droneschedulerKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssi
     principalType: 'ServicePrincipal'
   }
 }
-
 // Package service access to Key Vault secrets
 resource packageKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -199,7 +186,6 @@ resource packageKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments
     principalType: 'ServicePrincipal'
   }
 }
-
 // Ingress Controller access to Key Vault certificates
 resource ingressControllerKeyVaultCertificateUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -210,7 +196,6 @@ resource ingressControllerKeyVaultCertificateUserRole 'Microsoft.Authorization/r
     principalType: 'ServicePrincipal'
   }
 }
-
 // Application Gateway access to Key Vault certificates
 resource applicationGatewayKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: keyVault
@@ -221,67 +206,12 @@ resource applicationGatewayKeyVaultSecretsUserRole 'Microsoft.Authorization/role
     principalType: 'ServicePrincipal'
   }
 }
-
 // ============================================================================
 // CERTIFICATES (Placeholder - will be created by post-deployment scripts)
 // ============================================================================
 
 // Note: Self-signed certificates will be generated and stored by the post-deployment hook
 // This ensures the certificates are available for Application Gateway and Ingress Controller
-
-// ============================================================================
-// OUTPUTS
-// ============================================================================
-
-output keyVaultId string = keyVault.id
-output keyVaultName string = keyVault.name
-output keyVaultUri string = keyVault.properties.vaultUri
-
-// Managed Identity outputs
-output managedIdentities object = {
-  delivery: {
-    id: deliveryManagedIdentity.id
-    name: deliveryManagedIdentity.name
-    clientId: deliveryManagedIdentity.properties.clientId
-    principalId: deliveryManagedIdentity.properties.principalId
-  }
-  ingestion: {
-    id: ingestionManagedIdentity.id
-    name: ingestionManagedIdentity.name
-    clientId: ingestionManagedIdentity.properties.clientId
-    principalId: ingestionManagedIdentity.properties.principalId
-  }
-  workflow: {
-    id: workflowManagedIdentity.id
-    name: workflowManagedIdentity.name
-    clientId: workflowManagedIdentity.properties.clientId
-    principalId: workflowManagedIdentity.properties.principalId
-  }
-  dronescheduler: {
-    id: droneschedulerManagedIdentity.id
-    name: droneschedulerManagedIdentity.name
-    clientId: droneschedulerManagedIdentity.properties.clientId
-    principalId: droneschedulerManagedIdentity.properties.principalId
-  }
-  package: {
-    id: packageManagedIdentity.id
-    name: packageManagedIdentity.name
-    clientId: packageManagedIdentity.properties.clientId
-    principalId: packageManagedIdentity.properties.principalId
-  }
-  ingressController: {
-    id: ingressControllerManagedIdentity.id
-    name: ingressControllerManagedIdentity.name
-    clientId: ingressControllerManagedIdentity.properties.clientId
-    principalId: ingressControllerManagedIdentity.properties.principalId
-  }
-  applicationGateway: {
-    id: applicationGatewayManagedIdentity.id
-    name: applicationGatewayManagedIdentity.name
-    clientId: applicationGatewayManagedIdentity.properties.clientId
-    principalId: applicationGatewayManagedIdentity.properties.principalId
-  }
-}
 
 // Generated by Copilot - Additional Key Vault RBAC assignments for certificate management
 
@@ -369,7 +299,6 @@ resource currentUserKeyVaultSecretsOfficerRole 'Microsoft.Authorization/roleAssi
     principalType: 'User'
   }
 }
-
 // Generated by Copilot - Role assignments for AKS cluster managed identity
 resource aksClusterKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(aksClusterIdentityObjectId)) {
   scope: keyVault
@@ -380,7 +309,6 @@ resource aksClusterKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignme
     principalType: 'ServicePrincipal'
   }
 }
-
 resource aksClusterKeyVaultCertificateUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(aksClusterIdentityObjectId)) {
   scope: keyVault
   name: guid(aksClusterIdentityObjectId, keyVault.id, keyVaultCertificateUserRole)
@@ -388,5 +316,93 @@ resource aksClusterKeyVaultCertificateUserRole 'Microsoft.Authorization/roleAssi
     roleDefinitionId: keyVaultCertificateUserRole
     principalId: aksClusterIdentityObjectId
     principalType: 'ServicePrincipal'
+  }
+}
+// ============================================================================
+// PRIVATE LINK ENDPOINT
+// ============================================================================
+resource nodepoolToAkvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
+  name: 'nodepool-to-akv'
+  location: location
+  properties: {
+    subnet: {
+      id: vnetNodePoolSubnetResourceId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'nodepoolsubnet-to-akv'
+        properties: {
+          privateLinkServiceId: keyVault.id
+          groupIds: [
+            'vault'
+          ]
+        }
+      }
+    ]
+  }
+}
+resource nodepoolToAkvPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
+  parent: nodepoolToAkvPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-akv-net'
+        properties: {
+          privateDnsZoneId: akvPrivateDnsZones
+        }
+      }
+    ]
+  }
+}
+// ============================================================================
+// OUTPUTS
+// ============================================================================
+output keyVaultId string = keyVault.id
+output keyVaultName string = keyVault.name
+output keyVaultUri string = keyVault.properties.vaultUri
+// Managed Identity outputs
+output managedIdentities object = {
+  delivery: {
+    id: deliveryManagedIdentity.id
+    name: deliveryManagedIdentity.name
+    clientId: deliveryManagedIdentity.properties.clientId
+    principalId: deliveryManagedIdentity.properties.principalId
+  }
+  ingestion: {
+    id: ingestionManagedIdentity.id
+    name: ingestionManagedIdentity.name
+    clientId: ingestionManagedIdentity.properties.clientId
+    principalId: ingestionManagedIdentity.properties.principalId
+  }
+  workflow: {
+    id: workflowManagedIdentity.id
+    name: workflowManagedIdentity.name
+    clientId: workflowManagedIdentity.properties.clientId
+    principalId: workflowManagedIdentity.properties.principalId
+  }
+  dronescheduler: {
+    id: droneschedulerManagedIdentity.id
+    name: droneschedulerManagedIdentity.name
+    clientId: droneschedulerManagedIdentity.properties.clientId
+    principalId: droneschedulerManagedIdentity.properties.principalId
+  }
+  package: {
+    id: packageManagedIdentity.id
+    name: packageManagedIdentity.name
+    clientId: packageManagedIdentity.properties.clientId
+    principalId: packageManagedIdentity.properties.principalId
+  }
+  ingressController: {
+    id: ingressControllerManagedIdentity.id
+    name: ingressControllerManagedIdentity.name
+    clientId: ingressControllerManagedIdentity.properties.clientId
+    principalId: ingressControllerManagedIdentity.properties.principalId
+  }
+  applicationGateway: {
+    id: applicationGatewayManagedIdentity.id
+    name: applicationGatewayManagedIdentity.name
+    clientId: applicationGatewayManagedIdentity.properties.clientId
+    principalId: applicationGatewayManagedIdentity.properties.principalId
   }
 }

@@ -131,6 +131,9 @@
     "logLevel": {
       "value": "info"
     },
+    "privateEndpointsSubnetPrefix": {
+      "value": "10.240.4.32/27"
+    },
     "redisCapacity": {
       "value": "0"
     },

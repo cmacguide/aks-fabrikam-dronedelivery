@@ -28,17 +28,18 @@ param clusterNodesSubnetPrefix string
 param clusterIngressServicesSubnetPrefix string
 @description('Application Gateway User Subnet Prefix')
 param applicationGatewaySubnetPrefix string
-// @description('Private Endpoint User Subnet Prefix')
-// param privateEndpointsSubnetPrefix string
+@description('Private Endpoint User Subnet Prefix')
+param privateEndpointsSubnetPrefix string
 @description('Log Analitics Workspace Id')
 param logAnalyticsWorkspaceId string
 @description('Log Analitics Resource log configuration')
 param logConfigurations object
 @description('Log Analitics Resource metrics configuration')
 param metricsConfiguration array
-
-// @description('Hub Node Pool Subnet Prefix')
-// param hubNodePoolSubnetPrefix string
+@description('Acr Private Endpoint')
+param acrPrivateDnsZonesName string
+@description('Akv Private Endpoint User Subnet Prefix')
+param akvPrivateDnsZonesName string
 @description('Resource tags')
 param tags object = {}
 @description('Environment name (dev, staging, prod) - controls Azure Firewall SKU')
@@ -156,17 +157,17 @@ resource spokeVnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
           privateLinkServiceNetworkPolicies: 'Disabled'
         }
       }
-      // {
-      //   name: 'snet-privateendpoints'
-      //   properties: {
-      //     addressPrefix: privateEndpointsSubnetPrefix
-      //     networkSecurityGroup: {
-      //       id: privateEndpointsNsg.id
-      //     }
-      //     privateEndpointNetworkPolicies: 'Disabled'
-      //     privateLinkServiceNetworkPolicies: 'Enabled'
-      //   }
-      // }
+      {
+        name: 'snet-privateendpoints'
+        properties: {
+          addressPrefix: privateEndpointsSubnetPrefix
+          networkSecurityGroup: {
+            id: privateEndpointsNsg.id
+          }
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
+        }
+      }
     ]
   }
 }
@@ -905,27 +906,6 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2023-09-01' =
 // ============================================================================
 // OBSERVABILITY
 // ============================================================================
-// module logAnalytics '../observability/main.bicep' = {
-//   name: 'logAnalytics-${resourceSuffix}'
-//   params: {
-//     location: location
-//     resourceSuffix: resourceSuffix
-//     logAnalyticsWorkspaceSku: logAnalyticsWorkspaceSku
-//     retentionInDays: 30 // Default retention period
-//     tags: tags
-//   }
-// }
-// var logType string = 'firewall'
-
-// module observability '../observability/main.bicep' = {
-//   params: {
-//     logAnalyticsWorkspaceSku: logAnalyticsWorkspaceSku
-//     resourceSuffix: resourceSuffix
-//     diagnosticTargets: [
-//       firewall
-//     ]
-//   }
-// }
 resource firewallDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'diagSettings-${firewallName}'
   scope: azureFirewall
@@ -963,12 +943,50 @@ resource SpokeVnetDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-
   }
 }
 // ============================================================================
+// PRIVATE LINK ENDPOINT
+// ============================================================================
+
+resource acrPrivateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: acrPrivateDnsZonesName
+  location: 'global'
+  properties: {}
+}
+resource akvPrivateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: akvPrivateDnsZonesName
+  location: 'global'
+  properties: {}
+}
+resource acrPrivateDnsZonesName_Microsoft_Network_virtualNetworks_spokeVNet 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: acrPrivateDnsZones
+  name: uniqueString(spokeVnet.id)
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: spokeVnet.id
+    }
+    registrationEnabled: false
+  }
+}
+resource akvPrivateDnsZonesName_Microsoft_Network_virtualNetworks_spokeVNet 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: akvPrivateDnsZones
+  name: uniqueString(spokeVnet.id)
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: spokeVnet.id
+    }
+    registrationEnabled: false
+  }
+}
+
+// ============================================================================
 // OUTPUTS  
 // ============================================================================
 output hubVnetId string = hubVnet.id
 output spokeVnetId string = spokeVnet.id
 output aksSubnetId string = '${spokeVnet.id}/subnets/snet-clusternodes'
 output aksSystemSubnetId string = '${spokeVnet.id}/subnets/snet-clustersystem'
+output vnetNodePoolSubnetResourceId string = '${spokeVnet.id}/subnets/snet-clusternodes'
 output applicationGatewaySubnetId string = '${spokeVnet.id}/subnets/snet-applicationgateway'
 output privateEndpointsSubnetId string = '${spokeVnet.id}/subnets/snet-privateendpoints'
 output applicationGatewayId string = applicationGateway.id
@@ -976,3 +994,4 @@ output applicationGatewayFqdn string = applicationGatewayPublicIp.properties.dns
 output applicationGatewayPublicIpAddress string = applicationGatewayPublicIp.properties.ipAddress
 output azureFirewallId string = azureFirewall.id
 output azureFirewallPrivateIp string = azureFirewall.properties.ipConfigurations[0].properties.privateIPAddress
+output akvPrivateDnsZones string = akvPrivateDnsZones.id
