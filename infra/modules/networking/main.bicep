@@ -968,7 +968,7 @@ resource acrPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetwork
 }
 resource akvPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: akvPrivateDnsZone
-  name: uniqueString(spokeVnet.id)
+  name: '${akvPrivateDnsZone.name}-link'
   location: 'global'
   properties: {
     virtualNetwork: {
