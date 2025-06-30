@@ -111,7 +111,6 @@ resource containerInsightsSolution 'Microsoft.OperationsManagement/solutions@201
 // ============================================================================
 // MANAGED IDENTITIES
 // ============================================================================
-
 // Cluster control plane identity
 resource clusterControlPlaneIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: 'mi-${clusterName}-controlplane'
@@ -124,7 +123,6 @@ resource aksToKeyVaultIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities
   location: location
   tags: tags
 }
-
 // ============================================================================
 // AKS CLUSTER
 // ============================================================================
@@ -311,7 +309,6 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-02-01' = {
 // ============================================================================
 // RBAC ASSIGNMENTS
 // ============================================================================
-
 // AKS to Key Vault access
 resource aksToKeyVaultSecretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: resourceGroup()
@@ -377,11 +374,9 @@ resource aksToKeyVaultManagedIdentityOperatorRole 'Microsoft.Authorization/roleA
     principalType: 'ServicePrincipal'
   }
 }
-
 // ============================================================================
 // NETWORKING RBAC
 // ============================================================================
-
 // Network contributor role for AKS on VNet (deployed to VNet resource group)
 module vnetRbacAssignment 'rbac-vnet.bicep' = {
   name: 'vnet-rbac-assignment'
@@ -399,11 +394,9 @@ module nodeResourceGroupRbac 'rbac-node-rg.bicep' = {
     clusterIdentityObjectId: aksCluster.properties.identityProfile.kubeletidentity.objectId
   }
 }
-
 // ============================================================================
 // AZURE POLICY ASSIGNMENTS
 // ============================================================================
-
 // Kubernetes cluster pod security baseline standards for Linux-based workloads
 resource podSecurityBaselinePolicy 'Microsoft.Authorization/policyAssignments@2022-06-01' = {
   name: guid('42b8ef37-b724-4e24-bbc8-7a7708edfe00', resourceGroup().name, clusterName)
@@ -479,11 +472,9 @@ resource resourceLimitsPolicy 'Microsoft.Authorization/policyAssignments@2022-06
     }
   }
 }
-
 // ============================================================================
 // MONITORING AND ALERTING
 // ============================================================================
-
 // TODO: Re-enable diagnostic settings after Log Analytics Workspace is properly created
 // Diagnostic settings for AKS cluster
 resource aksClusterDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
@@ -613,11 +604,9 @@ resource podsFailedStateAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
   dependsOn: [containerInsightsSolution]
 }
-
 // ============================================================================
 // GITOPS CONFIGURATION (FLUX)
 // ============================================================================
-
 // Flux extension installation
 resource fluxExtension 'Microsoft.KubernetesConfiguration/extensions@2022-11-01' = {
   scope: aksCluster
@@ -681,11 +670,9 @@ resource fluxConfiguration 'Microsoft.KubernetesConfiguration/fluxConfigurations
     fluxExtension
   ]
 }
-
 // ============================================================================
 // OUTPUTS
 // ============================================================================
-
 output clusterName string = aksCluster.name
 output clusterFqdn string = aksCluster.properties.fqdn
 output clusterResourceId string = aksCluster.id
