@@ -204,6 +204,9 @@ module security 'modules/security/main.bicep' = {
     currentUserObjectId: currentUserObjectId
     akvPrivateDnsZone: networking.outputs.akvPrivateDnsZone
     vnetNodePoolSubnetResourceId: networking.outputs.vnetNodePoolSubnetResourceId
+    logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
+    logConfigurations: observability.outputs.logConfigurationsObj
+    metricsConfiguration: observability.outputs.metricsConfigurationArr
   }
 }
 // ============================================================================
@@ -219,6 +222,9 @@ module containerRegistry 'modules/container/acr.bicep' = {
     tags: tags
     acrPrivateDnsZone: networking.outputs.acrPrivateDnsZone
     vnetNodePoolSubnetResourceId: networking.outputs.vnetNodePoolSubnetResourceId
+    logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
+    logConfigurations: observability.outputs.logConfigurationsObj
+    metricsConfiguration: observability.outputs.metricsConfigurationArr
   }
 }
 // ============================================================================
