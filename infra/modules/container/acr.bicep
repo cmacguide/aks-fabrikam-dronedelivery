@@ -16,6 +16,12 @@ param acrSku string
 param vnetNodePoolSubnetResourceId string
 @description('Private Dns Zone para AKV')
 param acrPrivateDnsZone string
+@description('Log Analitics Workspace Id')
+param logAnalyticsWorkspaceId string
+@description('Log Analitics Resource log configuration')
+param logConfigurations object
+@description('Log Analitics Resource metrics configuration')
+param metricsConfiguration array
 @description('Resource tags')
 param tags object = {}
 
@@ -100,6 +106,18 @@ resource nodepoolToAcrPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoint
         }
       }
     ]
+  }
+}
+// ============================================================================
+// OBSERVABILITY
+// ============================================================================
+resource firewallDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'diagSettings-${acrName}'
+  scope: containerRegistry
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: logConfigurations.acrPremium
+    metrics: metricsConfiguration
   }
 }
 // ============================================================================

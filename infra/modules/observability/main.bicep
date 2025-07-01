@@ -154,6 +154,34 @@ var logConfigurations = {
       enabled: true
     }
   ]
+  acr: [
+    {
+      category: 'ContainerRegistryRepositoryEvents'
+      enabled: true
+    }
+    {
+      category: 'ContainerRegistryLoginEvents'
+      enabled: true
+    }
+  ]
+  acrPremium: [
+    {
+      category: 'ContainerRegistryRepositoryEvents'
+      enabled: true
+    }
+    {
+      category: 'ContainerRegistryLoginEvents'
+      enabled: true
+    }
+    {
+      categoryGroup: 'audit'
+      enabled: true
+    }
+    {
+      categoryGroup: 'allLogs'
+      enabled: false // Evitar logs redundantes
+    }
+  ]
   metrics: [
     {
       category: 'AllMetrics'
