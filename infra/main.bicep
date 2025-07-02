@@ -268,7 +268,7 @@ module aksCluster 'modules/compute/aks-cluster.bicep' = {
     vnetResourceId: networking.outputs.spokeVnetId
     subnetResourceId: networking.outputs.aksSubnetId
     containerRegistryId: containerRegistry.outputs.registryId
-    keyVaultId: security.outputs.keyVaultId
+    keyVaultId: security.outputs.keyVaultComputeId
     logAnalyticsWorkspaceId: observability.outputs.logAnalyticsWorkspaceId
     aksServiceCidr: aksServiceCidr
     aksDnsServiceIP: aksDnsServiceIP
@@ -307,7 +307,7 @@ output AKS_CLUSTER_NAME string = aksCluster.outputs.clusterName
 output resourceGroupNames object = resourceGroupNames
 output aksClusterName string = aksCluster.outputs.clusterName
 output containerRegistryName string = containerRegistry.outputs.registryName
-output keyVaultName string = security.outputs.keyVaultName
+output keyVaultName string = security.outputs.keyVaultComputeName
 output applicationGatewayFqdn string = networking.outputs.applicationGatewayFqdn
 output aksClusterFqdn string = aksCluster.outputs.clusterFqdn
 // Application Insights outputs
@@ -320,13 +320,13 @@ output endpoints object = {
   applicationGateway: networking.outputs.applicationGatewayFqdn
   aksCluster: aksCluster.outputs.clusterFqdn
   containerRegistry: containerRegistry.outputs.registryLoginServer
-  keyVault: security.outputs.keyVaultUri
+  keyVault: security.outputs.keyVaultComputeUri
   applicationInsights: observability.outputs.applicationInsightsName
 }
 // Connection information for troubleshooting
 output connectionInfo object = {
   aksGetCredentials: 'az aks get-credentials --name ${aksCluster.outputs.clusterName} --resource-group ${resourceGroupNames.compute}'
   acrLogin: 'az acr login --name ${containerRegistry.outputs.registryName}'
-  keyVaultAccess: 'az keyvault show --name ${security.outputs.keyVaultName}'
+  keyVaultAccess: 'az keyvault show --name ${security.outputs.keyVaultComputeName}'
   applicationInsights: 'az monitor app-insights show --app ${observability.outputs.applicationInsightsName} --resource-group ${resourceGroupNames.compute}'
 }
