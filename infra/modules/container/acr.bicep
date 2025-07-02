@@ -28,14 +28,12 @@ param tags object = {}
 // ============================================================================
 // VARIABLES
 // ============================================================================
-
 var acrName = 'acrreg${resourceSuffix}'
 // var acrSku = 'Premium' // Using Premium SKU for region compatibility
 
 // ============================================================================
 // CONTAINER REGISTRY
 // ============================================================================
-
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: acrName
   location: location
@@ -116,7 +114,7 @@ resource firewallDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-0
   scope: containerRegistry
   properties: {
     workspaceId: logAnalyticsWorkspaceId
-    logs: logConfigurations.acrPremium
+    logs: logConfigurations.acr
     metrics: metricsConfiguration
   }
 }
