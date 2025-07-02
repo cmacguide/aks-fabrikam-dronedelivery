@@ -38,19 +38,20 @@ param tags object
 // ============================================================================
 // VARIABLES
 // ============================================================================
-var cosmosDbAccountName = 'cosmos-${resourceSuffix}'
-var packageCosmosDbName = 'cosmon-package-${resourceSuffix}'
+var deliveryCosmosDbAccountName = 'cosmos-delivery-${resourceSuffix}'
+var droneSchedulerCosmosDbName = 'cosmos-scheduler-${resourceSuffix}'
+var packageMongoCosmosDbName = 'cosmon-package-${resourceSuffix}'
 var deliveryRedisName = 'redis-delivery-${resourceSuffix}'
 var serviceBusNamespaceName = 'sbns-ingest-${resourceSuffix}'
 var serviceBusQueueName = 'sbqueue-ingest-${resourceSuffix}'
 // ============================================================================
 // COSMOS DB ACCOUNTS
 // ============================================================================
-// Main Cosmos DB account for delivery and drone scheduler services
-resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
-  name: cosmosDbAccountName
+// Cosmos DB account for delivery service
+resource deliveryCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+  name: deliveryCosmosDbAccountName
   location: location
-  tags: union(tags, { 'azd-service-name': 'CosmosDB' })
+  tags: union(tags, { 'azd-service-name': 'Delivery-CosmosDb-Document' })
   kind: 'GlobalDocumentDB'
   properties: {
     consistencyPolicy: {
@@ -89,11 +90,54 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     ipRules: []
   }
 }
-// MongoDB API Cosmos DB for package service
-resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
-  name: packageCosmosDbName
+// Cosmos DB account for drone scheduler service
+resource droneSchedulerCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+  name: droneSchedulerCosmosDbName
   location: location
-  tags: union(tags, { 'azd-service-name': 'Package-CosmosDB' })
+  tags: union(tags, { 'azd-service-name': 'Drone-Scheduler-CosmosDB' })
+  kind: 'GlobalDocumentDB'
+  properties: {
+    consistencyPolicy: {
+      defaultConsistencyLevel: dbConsistencyLevel
+      maxIntervalInSeconds: dbMaxIntervalInSeconds
+      maxStalenessPrefix: dbMaxStalenessPrefix
+    }
+    locations: environmentName == 'dev'
+      ? [
+          {
+            locationName: location
+            failoverPriority: 0
+            isZoneRedundant: false
+          }
+        ]
+      : [
+          {
+            locationName: location
+            failoverPriority: 0
+            isZoneRedundant: true
+          }
+          {
+            locationName: geoRedundancyLocation
+            failoverPriority: 1
+            isZoneRedundant: true
+          }
+        ]
+    databaseAccountOfferType: 'Standard'
+    enableMultipleWriteLocations: dbEnableMultipleWriteLocations
+    isVirtualNetworkFilterEnabled: false
+    virtualNetworkRules: []
+    disableKeyBasedMetadataWriteAccess: false
+    enableFreeTier: environmentName == 'dev'
+    enableAutomaticFailover: environmentName != 'dev'
+    capabilities: []
+    ipRules: []
+  }
+}
+// MongoDB API Cosmos DB for Package service
+resource packageCosmosMongoDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+  name: packageMongoCosmosDbName
+  location: location
+  tags: union(tags, { 'azd-service-name': 'Package-CosmosDB-Mongo' })
   kind: 'MongoDB'
   properties: {
     consistencyPolicy: {
@@ -110,12 +154,12 @@ resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     ]
     databaseAccountOfferType: 'Standard'
     apiProperties: {
-      serverVersion: '4.2'
+      serverVersion: '7.0'
     }
     isVirtualNetworkFilterEnabled: false
     virtualNetworkRules: []
     disableKeyBasedMetadataWriteAccess: false
-    enableFreeTier: false
+    enableFreeTier: environmentName == 'dev'
     enableAutomaticFailover: environmentName != 'dev'
     capabilities: [
       {
@@ -153,7 +197,10 @@ resource deliveryRedisCache 'Microsoft.Cache/redis@2023-08-01' = {
 resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
   name: serviceBusNamespaceName
   location: location
-  tags: union(tags, { 'azd-service-name': 'Ingestion-ServiceBus' })
+  tags: union(
+    tags,
+    { 'azd-service-name': 'Ingestion-Workflow-ServiceBus', app: 'fabrikam-ingestion and fabrikam-workflow' }
+  )
   sku: {
     name: sBusSku
     tier: sBusTier
@@ -194,7 +241,6 @@ resource serviceBusListenRule 'Microsoft.ServiceBus/namespaces/AuthorizationRule
   name: 'IngestionServiceAccessKey'
   properties: {
     rights: [
-      'Listen'
       'Send'
     ]
   }
@@ -205,7 +251,6 @@ resource serviceBusSendRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@
   properties: {
     rights: [
       'Listen'
-      'Send'
     ]
   }
 }
@@ -213,16 +258,22 @@ resource serviceBusSendRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@
 // OUTPUTS
 // ============================================================================
 output servicesConfig object = {
-  cosmosDb: {
-    accountName: cosmosDbAccount.name
-    endpoint: cosmosDbAccount.properties.documentEndpoint
-    primaryKey: cosmosDbAccount.listKeys().primaryMasterKey
-    connectionString: 'AccountEndpoint=${cosmosDbAccount.properties.documentEndpoint};AccountKey=${cosmosDbAccount.listKeys().primaryMasterKey};'
+  deliveryCosmosDb: {
+    accountName: deliveryCosmosDb.name
+    endpoint: deliveryCosmosDb.properties.documentEndpoint
+    primaryKey: deliveryCosmosDb.listKeys().primaryMasterKey
+    connectionString: 'AccountEndpoint=${deliveryCosmosDb.properties.documentEndpoint};AccountKey=${deliveryCosmosDb.listKeys().primaryMasterKey};'
   }
-  packageCosmosDb: {
-    accountName: packageCosmosDb.name
-    endpoint: packageCosmosDb.properties.documentEndpoint
-    connectionString: packageCosmosDb.listConnectionStrings().connectionStrings[0].connectionString
+  droneSchedulerCosmosDb: {
+    accountName: droneSchedulerCosmosDb.name
+    endpoint: droneSchedulerCosmosDb.properties.documentEndpoint
+    primaryKey: droneSchedulerCosmosDb.listKeys().primaryMasterKey
+    connectionString: 'AccountEndpoint=${droneSchedulerCosmosDb.properties.documentEndpoint};AccountKey=${droneSchedulerCosmosDb.listKeys().primaryMasterKey};'
+  }
+  packageCosmonDb: {
+    accountName: packageCosmosMongoDb.name
+    endpoint: packageCosmosMongoDb.properties.documentEndpoint
+    connectionString: packageCosmosMongoDb.listConnectionStrings().connectionStrings[0].connectionString
   }
   redisCache: {
     name: deliveryRedisCache.name
@@ -241,8 +292,10 @@ output servicesConfig object = {
   }
 }
 // Individual service outputs for reference
-output cosmosDbAccountName string = cosmosDbAccount.name
-output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint
-output packageCosmosDbName string = packageCosmosDb.name
+output deliveryCosmosDbAccountName string = deliveryCosmosDb.name
+output deliveryCosmosDbEndpoint string = deliveryCosmosDb.properties.documentEndpoint
+output droneSchedulerCosmosDbAccountName string = droneSchedulerCosmosDb.name
+output droneSchedulerCosmosDbEndpoint string = droneSchedulerCosmosDb.properties.documentEndpoint
+output packageCosmosMongoDbName string = packageCosmosMongoDb.name
 output redisName string = deliveryRedisCache.name
 output serviceBusNamespaceName string = serviceBusNamespace.name
