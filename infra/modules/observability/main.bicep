@@ -22,16 +22,11 @@ param logAnalyticsWorkspaceSku string
 param retentionInDays int
 @description('Resource tags')
 param tags object = {}
-// @description('Recursos para os quais serão criados diagnosticSettings')
-// param diagnosticTargets array = []
-
 // ============================================================================
 // VARIABLES
 // ============================================================================
-
 var workspaceName = 'la-${resourceSuffix}-01'
 var appInsightsName = 'ai-${resourceSuffix}'
-
 // ============================================================================
 // RESOURCES
 // ============================================================================
@@ -54,13 +49,13 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
-  kind: 'web'
+  kind: 'other'
   tags: union(tags, {
     Service: 'ApplicationInsights'
     Purpose: 'DistributedTracing'
   })
   properties: {
-    Application_Type: 'web'
+    Application_Type: 'other'
     WorkspaceResourceId: logAnalytics.id
     IngestionMode: 'LogAnalytics'
     publicNetworkAccessForIngestion: 'Enabled'
@@ -177,7 +172,6 @@ var logConfigurations = {
     }
   ]
 }
-
 // Configurações de métricas
 var metricsConfiguration = [
   {
