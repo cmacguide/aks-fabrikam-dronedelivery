@@ -23,7 +23,7 @@ param logConfigurations object
 @description('Log Analitics Resource metrics configuration')
 param metricsConfiguration array
 @description('Resource tags')
-param tags object = {}
+param tags object = { displayName: 'Container Registry' }
 
 // ============================================================================
 // VARIABLES
@@ -50,14 +50,14 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
     }
     policies: {
       quarantinePolicy: {
-        status: 'enabled'
+        status: 'disabled'
       }
       trustPolicy: {
         type: 'Notary'
-        status: 'enabled' // Trust policy supported in Premium SKU
+        status: 'disabled' // Trust policy supported in Premium SKU
       }
       retentionPolicy: {
-        days: 30
+        days: 15
         status: 'enabled' // Retention policy supported in Premium SKU
       }
     }
