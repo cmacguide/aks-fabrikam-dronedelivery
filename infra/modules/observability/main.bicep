@@ -4,7 +4,6 @@ targetScope = 'resourceGroup'
 // ============================================================================
 // PARAMETERS
 // ============================================================================
-
 @description('Primary deployment location')
 param location string
 @description('Resource prefix identifier for resource naming')
@@ -36,7 +35,6 @@ var appInsightsName = 'ai-${resourceSuffix}'
 // ============================================================================
 // RESOURCES
 // ============================================================================
-
 // Log Analytics Workspace
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: workspaceName
@@ -52,7 +50,6 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
     }
   }
 }
-
 // Application Insights
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
@@ -73,21 +70,6 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     DisableLocalAuth: false
   }
 }
-
-// Diagnostic Settings para múltiplos recursos
-// @batchSize(1)
-// module diagnostics 'diagnosticSettings.bicep' = [
-//   for (target, index) in diagnosticTargets: {
-//     name: 'diag-${target.name}-${index}'
-//     params: {
-//       name: 'diag-${target.name}'
-//       targetResourceId: target.resourceId
-//       resourceType: target.type
-//       workspaceId: logAnalytics.id
-//     }
-//   }
-// ]
-
 // Configurações específicas por tipo de recurso
 var logConfigurations = {
   aks: [
@@ -203,7 +185,9 @@ var metricsConfiguration = [
     enabled: true
   }
 ]
-
+// ============================================================================
+// OUTPUTS
+// ============================================================================
 // Configuration para microservices
 output observabilityConfig object = {
   applicationInsights: {
@@ -216,11 +200,6 @@ output observabilityConfig object = {
     workspaceName: logAnalytics.name
   }
 }
-
-// ============================================================================
-// OUTPUTS
-// ============================================================================
-
 output logAnalyticsWorkspaceId string = logAnalytics.id
 output logAnalyticsWorkspaceName string = logAnalytics.name
 output applicationInsightsId string = appInsights.id
