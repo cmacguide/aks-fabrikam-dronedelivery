@@ -41,7 +41,7 @@ param acrPrivateDnsZonesName string
 @description('Akv Private Endpoint User Subnet Prefix')
 param akvPrivateDnsZonesName string
 @description('Resource tags')
-param tags object = {}
+param tags object
 @description('Environment name (dev, staging, prod) - controls Azure Firewall SKU')
 param environmentName string
 // ============================================================================

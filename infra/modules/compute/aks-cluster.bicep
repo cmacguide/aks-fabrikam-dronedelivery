@@ -51,7 +51,7 @@ param gitOpsBootstrappingRepoHttpsUrl string = 'https://github.com/mspnp/aks-fab
 @description('Branch of the GitOps repository')
 param gitOpsBootstrappingRepoBranch string = 'main'
 @description('Tags to be applied to all resources')
-param tags object = {}
+param tags object
 
 // ============================================================================
 // VARIABLES

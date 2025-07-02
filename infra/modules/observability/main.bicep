@@ -21,7 +21,7 @@ param logAnalyticsWorkspaceSku string
 @maxValue(730)
 param retentionInDays int
 @description('Resource tags')
-param tags object = {}
+param tags object
 // ============================================================================
 // VARIABLES
 // ============================================================================

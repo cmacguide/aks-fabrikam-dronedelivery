@@ -32,24 +32,20 @@ param redisCapacity int
 param sBusSku string
 @description('Service Bus Tier')
 param sBusTier string
-
 @description('Resource tags')
-param tags object = {}
+param tags object
 
 // ============================================================================
 // VARIABLES
 // ============================================================================
-
 var cosmosDbAccountName = 'cosmos-${resourceSuffix}'
 var packageCosmosDbName = 'cosmon-package-${resourceSuffix}'
 var deliveryRedisName = 'redis-delivery-${resourceSuffix}'
 var serviceBusNamespaceName = 'sbns-ingest-${resourceSuffix}'
-var serviceBusQueueName = 'sb-ingest-${resourceSuffix}'
-
+var serviceBusQueueName = 'sbqueue-ingest-${resourceSuffix}'
 // ============================================================================
 // COSMOS DB ACCOUNTS
 // ============================================================================
-
 // Main Cosmos DB account for delivery and drone scheduler services
 resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   name: cosmosDbAccountName
@@ -93,7 +89,6 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     ipRules: []
   }
 }
-
 // MongoDB API Cosmos DB for package service
 resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   name: packageCosmosDbName
@@ -130,11 +125,9 @@ resource packageCosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     ipRules: []
   }
 }
-
 // ============================================================================
 // REDIS CACHE
 // ============================================================================
-
 resource deliveryRedisCache 'Microsoft.Cache/redis@2023-08-01' = {
   name: deliveryRedisName
   location: location
@@ -154,11 +147,9 @@ resource deliveryRedisCache 'Microsoft.Cache/redis@2023-08-01' = {
     publicNetworkAccess: 'Enabled'
   }
 }
-
 // ============================================================================
 // SERVICE BUS
 // ============================================================================
-
 resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
   name: serviceBusNamespaceName
   location: location
@@ -174,7 +165,6 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
     zoneRedundant: environmentName == 'prod'
   }
 }
-
 resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   parent: serviceBusNamespace
   name: serviceBusQueueName
@@ -198,7 +188,6 @@ resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-prev
       : {}
   )
 }
-
 // Service Bus authorization rules
 resource serviceBusListenRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-10-01-preview' = {
   parent: serviceBusNamespace
@@ -210,7 +199,6 @@ resource serviceBusListenRule 'Microsoft.ServiceBus/namespaces/AuthorizationRule
     ]
   }
 }
-
 resource serviceBusSendRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-10-01-preview' = {
   parent: serviceBusNamespace
   name: 'WorkflowServiceAccessKey'
@@ -221,11 +209,9 @@ resource serviceBusSendRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@
     ]
   }
 }
-
 // ============================================================================
 // OUTPUTS
 // ============================================================================
-
 output servicesConfig object = {
   cosmosDb: {
     accountName: cosmosDbAccount.name
@@ -254,7 +240,6 @@ output servicesConfig object = {
     workflowConnectionString: serviceBusSendRule.listKeys().primaryConnectionString
   }
 }
-
 // Individual service outputs for reference
 output cosmosDbAccountName string = cosmosDbAccount.name
 output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint

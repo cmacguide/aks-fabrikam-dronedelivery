@@ -49,8 +49,6 @@ param aksLoadBalancerSku string
 param k8sRbacEntraAdminGroupObjectID string
 @description('Object ID of the current user or service principal for Key Vault access')
 param currentUserObjectId string = ''
-@description('Domain name for the application (e.g., fabrikam.com)')
-param domainName string
 @description('Application name prefix for resource naming')
 param appName string
 @description('Sku for Azure Container registry')
@@ -198,7 +196,6 @@ module security 'modules/security/main.bicep' = {
   params: {
     location: location
     resourceSuffix: resourceSuffix
-    domainName: domainName
     tags: tags
     azureTenantId: azureTenantId
     currentUserObjectId: currentUserObjectId

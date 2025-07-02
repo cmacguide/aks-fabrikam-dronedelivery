@@ -9,13 +9,9 @@ targetScope = 'resourceGroup'
 param location string
 @description('Resource prefix identifier for resource naming')
 param resourceSuffix string
-@description('Domain name for certificate generation')
-param domainName string
 @description('Tenant Id')
 @secure()
 param azureTenantId string
-@description('Resource tags')
-param tags object = { what: 'rbac' }
 // Object ID of the current user or service principal for Key Vault access
 @description('Object ID of the current user or service principal for Key Vault access')
 param currentUserObjectId string = ''
@@ -32,6 +28,8 @@ param logAnalyticsWorkspaceId string
 param logConfigurations object
 @description('Log Analitics Resource metrics configuration')
 param metricsConfiguration array
+@description('Resource tags')
+param tags object
 // ============================================================================
 // VARIABLES
 // ============================================================================
