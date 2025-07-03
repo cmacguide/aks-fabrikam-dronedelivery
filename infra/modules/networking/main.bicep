@@ -739,9 +739,9 @@ resource hubToSpokeVnetPeering 'Microsoft.Network/virtualNetworks/virtualNetwork
   parent: hubVnet
   name: '${hubVnetName}-to-${spokeVnetName}'
   properties: {
-    allowVirtualNetworkAccess: true
-    allowForwardedTraffic: true
+    allowForwardedTraffic: false
     allowGatewayTransit: false
+    allowVirtualNetworkAccess: true
     useRemoteGateways: false
     remoteVirtualNetwork: {
       id: spokeVnet.id
@@ -752,9 +752,9 @@ resource spokeToHubVnetPeering 'Microsoft.Network/virtualNetworks/virtualNetwork
   parent: spokeVnet
   name: '${spokeVnetName}-to-${hubVnetName}'
   properties: {
-    allowVirtualNetworkAccess: true
-    allowForwardedTraffic: true
+    allowForwardedTraffic: false
     allowGatewayTransit: false
+    allowVirtualNetworkAccess: true
     useRemoteGateways: false
     remoteVirtualNetwork: {
       id: hubVnet.id
