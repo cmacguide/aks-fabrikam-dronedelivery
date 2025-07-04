@@ -543,6 +543,7 @@ resource DiagnosticSettingWorkflowKeyVault 'Microsoft.Insights/diagnosticSetting
 // ============================================================================
 // OUTPUTS
 // ============================================================================
+output keyVaultSecretsUserRole string = keyVaultSecretsUserRole
 output keyVaultPackageId string = packageKeyVault.id
 output keyVaultPackageName string = packageKeyVault.name
 output keyVaultPackagetUri string = packageKeyVault.properties.vaultUri
