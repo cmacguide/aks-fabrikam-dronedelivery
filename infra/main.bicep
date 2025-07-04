@@ -53,6 +53,8 @@ param currentUserObjectId string = ''
 param appName string
 @description('Sku for Azure Container registry')
 param acrSku string
+@description('Name for Azure Container registry')
+param acrName string
 @description('Consistence Level for Cosmos DB')
 param dbConsistencyLevel string
 @description('Replication Level for Cosmos DB')
@@ -213,9 +215,9 @@ module containerRegistry 'modules/container/acr.bicep' = {
   name: 'container-registry-deployment'
   scope: containerRG
   params: {
+    acrName: acrName
     acrSku: acrSku
     location: location
-    resourceSuffix: cleanedresourceSuffix
     tags: tags
     acrPrivateDnsZone: networking.outputs.acrPrivateDnsZone
     vnetNodePoolSubnetResourceId: networking.outputs.vnetNodePoolSubnetResourceId

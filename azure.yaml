@@ -24,5 +24,7 @@ hooks:
 
   postprovision:
     shell: sh
-    run: chmod +x ./infra/hooks/postprovision.sh && ./infra/hooks/postprovision.sh
+    run: |
+      chmod +x ./infra/hooks/postprovision.sh && ./infra/hooks/postprovision.sh
+      chmod +x ./generate-k8s-manifests.sh && ./generate-k8s-manifests.sh
     continueOnError: false

@@ -8,6 +8,9 @@
     "AZURE_LOCATION": {
       "value": "eastus2"
     },
+    "acrName": {
+      "value": "acrregfbkdddevux4a"
+    },
     "acrPrivateDnsZonesName": {
       "value": "privatelink.azurecr.io"
     },
