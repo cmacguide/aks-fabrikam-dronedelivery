@@ -39,7 +39,12 @@ else
   source "$envFile"
   echo -e "${GREEN}✅ Arquivo .env carregado!${NC}"
 fi
-
+# Capturar ACR_NAME e remover hífen
+if [[ -n "$ACR_NAME" ]]; then
+  acrCleanName=$(echo "$ACR_NAME" | tr -d '-')
+  echo -e "${BLUE}📝 ACR_NAME: $ACR_NAME${NC}"
+  echo -e "${BLUE}📝 acrCleanName: $acrCleanName${NC}"
+fi
 # Função para definir variável com feedback
 set_variable() {
   local name=$1
@@ -94,6 +99,7 @@ setup_fabrikam_preset() {
   set_variable "enableNetworkPolicy" $ENABLE_NETWORK_POLICY "Network Policy habilitado"
   # Configurações ACR
   set_variable "acrSku" $ACR_SKU "SKU do Azure Container Resgistry"
+  set_variable "acrName" "$acrCleanName" "Nome do ACR sem hífen"
   # Configurações Data Tier
   set_variable "dbConsistencyLevel" $DB_CONSISTENCY_LEVEL
   set_variable "dbMaxIntervalInSeconds" $DB_MAX_INTERVAL_IN_SECONDS
