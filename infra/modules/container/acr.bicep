@@ -8,10 +8,10 @@ targetScope = 'resourceGroup'
 
 @description('Primary deployment location')
 param location string = resourceGroup().location
-@description('Resource prefix identifier for resource naming')
-param resourceSuffix string
-@description('Unique identifier for resource naming')
+@description('Name for Azure Container registry')
 param acrSku string
+@description('Name for Azure Container registry')
+param acrName string
 @description('Spoke Node Pool Subnet Prefix')
 param vnetNodePoolSubnetResourceId string
 @description('Private Dns Zone para AKV')
@@ -28,7 +28,7 @@ param tags object = { displayName: 'Container Registry' }
 // ============================================================================
 // VARIABLES
 // ============================================================================
-var acrName = 'acrreg${resourceSuffix}'
+// var acrName = 'acrreg${resourceSuffix}'
 // var acrSku = 'Premium' // Using Premium SKU for region compatibility
 
 // ============================================================================
