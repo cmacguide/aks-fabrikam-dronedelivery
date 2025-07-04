@@ -109,7 +109,7 @@ resource nodepoolToAcrPrivateEndpointDNSGroup 'Microsoft.Network/privateEndpoint
 // ============================================================================
 // OBSERVABILITY
 // ============================================================================
-resource firewallDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+resource acrDiagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: 'diagSettings-${acrName}'
   scope: containerRegistry
   properties: {
